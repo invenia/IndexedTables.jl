@@ -8,6 +8,16 @@ function TableTraits.getiterator(source::S) where {S <: NDSparse}
     return rows(source)
 end
 
+function _array_factory(t,rows)
+    if isa(t, TypeVar)
+        return Array{Any}(rows)
+    elseif t <: DataValue
+        return DataValueArray{eltype(t)}(rows)
+    else
+        return Array{t}(rows)
+    end
+end
+
 function NDSparse(x; idxcols::Union{Void,Vector{Symbol}}=nothing, datacols::Union{Void,Vector{Symbol}}=nothing)
     if isiterabletable(x)
         iter = getiterator(x)
@@ -31,7 +41,7 @@ function NDSparse(x; idxcols::Union{Void,Vector{Symbol}}=nothing, datacols::Unio
             error("Unknown datacol")
         end
 
-        source_data, source_names = TableTraitsUtils.create_columns_from_iterabletable(x)
+        source_data, source_names = TableTraitsUtils.create_columns_from_iterabletable(x, array_factory=_array_factory)
 
         idxcols_indices = [findfirst(source_colnames,i) for i in idxcols]
         datacols_indices = [findfirst(source_colnames,i) for i in datacols]
@@ -48,7 +58,7 @@ function NDSparse(x; idxcols::Union{Void,Vector{Symbol}}=nothing, datacols::Unio
 end
 
 function table(rows::AbstractArray{T}; kwargs...) where {T<:NamedTuple}
-    source_data, source_names = TableTraitsUtils.create_columns_from_iterabletable(rows)
+    source_data, source_names = TableTraitsUtils.create_columns_from_iterabletable(rows, array_factory=_array_factory)
     
     kwargs_dict = Dict(i[1]=>i[2] for i in kwargs)   
     kwargs_dict[:copy] = false
@@ -58,7 +68,7 @@ end
 
 function table(iter; kwargs...)
     if isiterabletable(iter)
-        source_data, source_names = TableTraitsUtils.create_columns_from_iterabletable(iter)
+        source_data, source_names = TableTraitsUtils.create_columns_from_iterabletable(iter, array_factory=_array_factory)
 
         kwargs_dict = Dict(i[1]=>i[2] for i in kwargs)   
         kwargs_dict[:copy] = false
