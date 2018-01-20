@@ -88,4 +88,4 @@ dates       city       │ value
 
 ## Get started
 
-For more information, check out the [JulidDB API Reference](http://juliadb.org/latest/api/datastructures.html)
+For more information, check out the [JuliaDB API Reference](http://juliadb.org/latest/api/datastructures.html)
