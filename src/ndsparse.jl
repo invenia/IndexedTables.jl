@@ -398,7 +398,7 @@ function showmeta(io, t::NDSparse, cnames)
     with_output_format(:underline, println, io, "Values")
     if isa(values(t), Columns)
         metat = Columns(([nidx+1:nkeys+nidx;], [Text(get(cnames, i, "<noname>")) for i in nidx+1:nkeys+nidx],
-                         eltype.([columns(values(t))...])))
+                         eltype.(Any[columns(values(t))...])))
         showtable(io, metat, cnames=["#", "colname", "type"], cstyle=fill(:bold, nc), full=true)
     else
         show(io, eltype(values(t)))

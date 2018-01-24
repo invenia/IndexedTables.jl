@@ -134,9 +134,8 @@ end
 
 ## groupreduce
 
-function groupreduce_to!(f, key, data, dest_key, dest_data, perm)
+function groupreduce_to!(f, key, data, dest_key, dest_data, perm, i1=1)
     n = length(key)
-    i1 = 1
     while i1 <= n
         val = init_first(f, data[perm[i1]])
         i = i1+1
@@ -144,8 +143,18 @@ function groupreduce_to!(f, key, data, dest_key, dest_data, perm)
             val = _apply(f, val, data[perm[i]])
             i += 1
         end
-        push!(dest_key, key[perm[i1]])
-        push!(dest_data, val)
+        if dest_data === nothing
+            if val isa Tup
+                col = convert(Columns, [val])
+            else
+                col = [val]
+            end
+            push!(dest_key, key[perm[i1]])
+            return groupreduce_to!(f, key, data, dest_key, col, perm, i+1)
+        else
+            push!(dest_key, key[perm[i1]])
+            push!(dest_data, val)
+        end
         i1 = i
     end
     dest_key, dest_data
@@ -231,9 +240,9 @@ function groupreduce(f, t::Dataset, by=pkeynames(t); select=valuenames(t))
     dest_key = similar(key, 0)
 
     fs, input, T = init_inputs(f, data, reduced_type, false)
-    dest_data = similar(arrayof(T), 0)
 
-    groupreduce_to!(fs, key, input, dest_key, dest_data, perm)
+    dest_key, dest_data = groupreduce_to!(fs, key, input,
+                                          dest_key, nothing, perm)
 
     convert(collectiontype(t), dest_key, dest_data,
             presorted=true, copy=false)
