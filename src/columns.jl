@@ -578,7 +578,7 @@ To get the immutable iterator of the same type as `t`
 call `d[]`
 """
 function ColDict(t; copy=nothing)
-    ColDict(Int[], t, Base.copy(colnames(t)), Any[columns(t)...], copy)
+    ColDict(Int[], t, convert(Array{Any}, Base.copy(colnames(t))), Any[columns(t)...], copy)
 end
 
 function Base.getindex(d::ColDict{<:Columns})
