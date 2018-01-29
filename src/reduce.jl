@@ -150,7 +150,7 @@ function groupreduce_to!(f, key, data, dest_key, dest_data, perm, i1=1)
                 col = [val]
             end
             push!(dest_key, key[perm[i1]])
-            return groupreduce_to!(f, key, data, dest_key, col, perm, i+1)
+            return groupreduce_to!(f, key, data, dest_key, col, perm, i)
         else
             push!(dest_key, key[perm[i1]])
             push!(dest_data, val)
