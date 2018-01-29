@@ -562,7 +562,7 @@ function reducedim(f, x::NDSparse, dims)
     if isempty(keep)
         throw(ArgumentError("to remove all dimensions, use `reduce(f, A)`"))
     end
-    selectkeys(x, (keep...), agg=f)
+    groupreduce(f, x, (keep...))
 end
 
 reducedim(f, x::NDSparse, dims::Symbol) = reducedim(f, x, [dims])
