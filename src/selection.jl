@@ -140,8 +140,8 @@ function selectkeys(x::NDSparse, which; kwargs...)
     ndsparse(rows(keys(x), which), values(x); kwargs...)
 end
 
-function selectvalues(x::NDSparse, which; kwargs...)
-    ndsparse(keys(x), rows(values(x), which); kwargs...)
+function selectvalues(x::NDSparse, which; presorted=true, copy=false, kwargs...)
+    ndsparse(keys(x), rows(values(x), which); presorted=presorted, copy=copy, kwargs...)
 end
 
 """
