@@ -555,9 +555,9 @@ end
 
 rows(t, which...) = rows(columns(t, which...))
 
-_cols(xs::Columns) = columns(xs)
-_cols(xs::AbstractArray) = (xs,)
-concat_cols(xs, ys) = rows(concat_tup(_cols(xs), _cols(ys)))
+_cols_tuple(xs::Columns) = columns(xs)
+_cols_tuple(xs::AbstractArray) = (xs,)
+concat_cols(xs, ys) = rows(concat_tup(_cols_tuple(xs), _cols_tuple(ys)))
 
 ## Mutable Columns Dictionary
 
