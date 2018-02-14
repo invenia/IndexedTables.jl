@@ -6,6 +6,8 @@ import Base:
 
 export Columns, colnames, ncols, ColDict, insertafter!, insertbefore!, @cols, setcol, pushcol, popcol, insertcol, insertcolafter, insertcolbefore, renamecol
 
+export Join, Not, Between, Keys
+
 """
 A type that stores an array of tuples as a tuple of arrays.
 
@@ -192,7 +194,7 @@ function similar(c::Columns{D,C}) where {D,C}
     Columns{D,typeof(cols)}(cols)
 end
 
-function similar(c::Columns{D,C}, n::Integer) where {D,C} 
+function similar(c::Columns{D,C}, n::Integer) where {D,C}
     cols = map(a->similar(a,n), c.columns)
     Columns{D,typeof(cols)}(cols)
 end
@@ -417,6 +419,164 @@ end
     ex
 end
 
+## Special selectors to simplify column selector
+
+"""
+`Join(cols)`
+
+Select the union of the selections in `cols`.
+
+# Examples
+
+```jldoctest Join
+julia> t = table([1,1,2,2], [1,2,1,2], [1,2,3,4],
+                 names=[:a,:b,:c])
+Table with 4 rows, 3 columns:
+a  b  c
+───────
+1  1  1
+1  2  2
+2  1  3
+2  2  4
+
+julia> select(t, Join(:a, (:b, :c)))
+Table with 4 rows, 3 columns:
+a  b  c
+───────
+1  1  1
+1  2  2
+2  1  3
+2  2  4
+```
+"""
+struct Join{T}
+    cols::T
+end
+
+Join(args...) = Join(args)
+
+"""
+`Not(cols)`
+
+Select the complementary of the selection in `cols`. `Not` can accept several arguments,
+in which case it returns the complementary of the union of the selections.
+
+# Examples
+
+```jldoctest Not
+julia> t = table([1,1,2,2], [1,2,1,2], [1,2,3,4],
+                        names=[:a,:b,:c], pkey = (:a, :b))
+Table with 4 rows, 3 columns:
+a  b  c
+───────
+1  1  1
+1  2  2
+2  1  3
+2  2  4
+
+julia> select(t, Keys())
+Table with 4 rows, 2 columns:
+b  c
+────
+1  1
+2  2
+1  3
+2  4
+
+julia> select(t, Not(:a, (:a, :b)))
+Table with 4 rows, 1 columns:
+c
+─
+1
+2
+3
+4
+```
+"""
+struct Not{T}
+    cols::T
+end
+
+Not(args...) = Not(Join(args))
+
+"""
+`Keys()`
+
+Select the primary keys.
+
+# Examples
+
+```jldoctest Keys
+julia> t = table([1,1,2,2], [1,2,1,2], [1,2,3,4],
+                               names=[:a,:b,:c], pkey = (:a, :b))
+Table with 4 rows, 3 columns:
+a  b  c
+───────
+1  1  1
+1  2  2
+2  1  3
+2  2  4
+
+julia> select(t, Keys())
+Table with 4 rows, 2 columns:
+a  b
+────
+1  1
+1  2
+2  1
+2  2
+```
+"""
+struct Keys; end
+
+"""
+`Between(first, last)`
+
+Select the columns between `first` and `last`.
+
+# Examples
+
+```jldoctest Between
+julia> t = table([1,1,2,2], [1,2,1,2], [1,2,3,4], ["a", "b", "c", "d"],
+                                      names=[:a,:b,:c, :d])
+Table with 4 rows, 4 columns:
+a  b  c  d
+────────────
+1  1  1  "a"
+1  2  2  "b"
+2  1  3  "c"
+2  2  4  "d"
+
+julia> select(t, Between(:b, :d))
+Table with 4 rows, 3 columns:
+b  c  d
+─────────
+1  1  "a"
+2  2  "b"
+1  3  "c"
+2  4  "d"
+```
+"""
+struct Between{T1 <: Union{Int, Symbol}, T2 <: Union{Int, Symbol}}
+    first::T1
+    last::T2
+end
+
+const SpecialSelector = Union{Not, Join, Keys, Between, Function}
+
+lowerselection(t, s)                     = s
+lowerselection(t, s::Union{Int, Symbol}) = colindex(t, s)
+lowerselection(t, s::Tuple)              = map(x -> lowerselection(t, x), s)
+lowerselection(t, s::Not)                = excludecols(t, lowerselection(t, s.cols))
+lowerselection(t, s::Keys)               = lowerselection(t, IndexedTables.pkeynames(t))
+lowerselection(t, s::Between)            = Tuple(colindex(t, s.first):colindex(t, s.last))
+lowerselection(t, s::Function)           = colindex(t, Tuple(filter(s, colnames(t))))
+
+function lowerselection(t, s::Join)
+    ls = (isa(i, Tuple) ? i : (i,) for i in lowerselection(t, s.cols))
+    ls |> Iterators.flatten |> union |> Tuple
+end
+
 ### Iteration API
 
 # For `columns(t, names)` and `rows(t, ...)` to work, `t`
@@ -430,6 +590,11 @@ end
 Base.@pure function colindex(t, col)
     _colindex(colnames(t), col)
 end
+
+function colindex(t, col::SpecialSelector)
+    colindex(t, lowerselection(t, col))
+end
+
 function _colindex(fnames::AbstractArray, col, default=nothing)
     if isa(col, Int) && 1 <= col <= length(fnames)
         return col
@@ -462,8 +627,10 @@ column(t, a::AbstractArray) = a
 column(t, a::Pair{Symbol, <:AbstractArray}) = column(t, a[2])
 column(t, a::Pair{Symbol, <:Pair}) = rows(t, a[2]) # renaming a selection
 column(t, a::Pair{<:Any, <:Any}) = map(a[2], rows(t, a[1]))
+column(t, s::SpecialSelector) = rows(t, lowerselection(t, s))
 
-function columns(c, which::Tuple)
+function columns(c, sel::Union{Tuple, SpecialSelector})
+    which = lowerselection(c, sel)
     cnames = colnames(c, which)
     if all(x->isa(x, Symbol), cnames)
         tuplewrap = namedtuple(cnames...)
@@ -485,6 +652,8 @@ function colnames(c, cols::Union{Tuple, AbstractArray})
     map(x->colname(c, x), cols)
 end
 
+colnames(c, cols::SpecialSelector) = colnames(c, lowerselection(c, cols))
+
 function colname(c, col)
     if isa(col, Union{Int, Symbol})
         col == 0 && return 0
@@ -494,6 +663,8 @@ function colname(c, col)
         return col[1]
     elseif isa(col, Tuple)
         #ns = map(x->colname(c, x), col)
+        return 0
+    elseif isa(col, SpecialSelector)
         return 0
     elseif isa(col, AbstractVector)
         return 0
