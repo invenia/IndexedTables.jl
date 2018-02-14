@@ -250,12 +250,6 @@ end
 
 ## GroupBy
 
-struct SubArrClosure{R}
-    r::R
-end
-
-(f::SubArrClosure)(x) = SubArray(x, f.r)
-
 function _groupby(f, key, data, perm, dest_key=similar(key,0),
                   dest_data=nothing, i1=1)
     n = length(key)
@@ -265,12 +259,10 @@ function _groupby(f, key, data, perm, dest_key=similar(key,0),
         while i <= n && roweq(key, perm[i], perm[i1])
             i += 1
         end
-        # needed this hack to avoid allocations. i loses type info
-        #val = _apply(f, map(x->SubArray(x, (perm[i1:(i-1)],)), cs))
         if isa(cs, Tup)
-            val = _apply(f, map(SubArrClosure((perm[i1:(i-1)],)), cs))
+            val = _apply(f, map(t -> view(t, perm[i1:(i-1)]), cs))
         else
-            val = _apply(f, SubArray(cs, (perm[i1:(i-1)],)))
+            val = _apply(f, view(cs, perm[i1:(i-1)]))
         end
 
         push!(dest_key, key[perm[i1]])
@@ -583,4 +575,3 @@ function reducedim_vec(f, x::NDSparse, dims; with=valuenames(x))
 end
 
 reducedim_vec(f, x::NDSparse, dims::Symbol) = reducedim_vec(f, x, [dims])
-
