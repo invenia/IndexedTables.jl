@@ -13,10 +13,12 @@ end
                               lidx, ridx, lnull, rnull)
     if part === :left
         pushrow!(lout, ldata, lidx)
-        push!(rout, rnull)
+        l = length(lout)
+        resize!(rout, l)
     elseif part === :right
         pushrow!(rout, rdata, ridx)
-        push!(lout, lnull)
+        l = length(rout)
+        resize!(lout, l)
     elseif part === :both
         pushrow!(lout, ldata, lidx)
         pushrow!(rout, rdata, ridx)
@@ -58,6 +60,9 @@ function _join!{typ, grp, keepkeys}(::Val{typ}, ::Val{grp}, ::Val{keepkeys}, f, 
 
     i = j = prevj = 1
 
+    lnull_idx = Int[]
+    rnull_idx = Int[]
+
     while i <= ll && j <= rr
         c = rowcmp(lkey, lperm[i], rkey, rperm[j])
         if c < 0
@@ -69,6 +74,7 @@ function _join!{typ, grp, keepkeys}(::Val{typ}, ::Val{grp}, ::Val{keepkeys}, f, 
                 else
                     _push!(Val{:left}(), f, data, lout, rout,
                            ldata, rdata, lperm[i], 0, lnull, rnull)
+                    push!(rnull_idx, length(data))
                 end
             end
             i += 1
@@ -131,6 +137,7 @@ function _join!{typ, grp, keepkeys}(::Val{typ}, ::Val{grp}, ::Val{keepkeys}, f, 
                 else
                     _push!(Val{:right}(), f, data, lout, rout,
                            ldata, rdata, 0, rperm[j], lnull, rnull)
+                    push!(lnull_idx, length(data))
                 end
             end
             j += 1
@@ -145,6 +152,7 @@ function _join!{typ, grp, keepkeys}(::Val{typ}, ::Val{grp}, ::Val{keepkeys}, f, 
                 # empty group
                 append!(data, map(x->init_group(), i:ll))
             else
+                append!(rnull_idx, (1:length(i:ll)) + length(data))
                 _append!(Val{:left}(), f, data, lout, rout,
                        ldata, rdata, lperm[i:ll], 0, lnull, rnull)
             end
@@ -154,11 +162,13 @@ function _join!{typ, grp, keepkeys}(::Val{typ}, ::Val{grp}, ::Val{keepkeys}, f, 
                 # empty group
                 append!(data, map(x->init_group(), j:rr))
             else
+                append!(lnull_idx, (1:length(j:rr)) + length(data))
                 _append!(Val{:right}(), f, data, lout, rout,
                        ldata, rdata, 0, rperm[j:rr], lnull, rnull)
             end
         end
     end
+    lnull_idx, rnull_idx
 end
 
 nullrow(t::Type{<:Tuple}) = tuple(map(x->x(), [t.parameters...])...)
@@ -173,20 +183,20 @@ function init_join_output(typ, grp, f, ldata, rdata, left, keepkeys, lkey, rkey,
 
     if isa(grp, Val{false})
 
-        if isa(typ, Union{Val{:left}, Val{:inner}, Val{:anti}})
-            # left cannot be null in these joins
-            left_type = eltype(ldata)
+        left_type = eltype(ldata)
+        if !isa(typ, Union{Val{:left}, Val{:inner}, Val{:anti}})
+            null_left_type = map_params(x->DataValue{x}, eltype(ldata))
+            lnull = nullrow(null_left_type)
         else
-            left_type = map_params(x->DataValue{x}, eltype(ldata))
-            lnull = nullrow(left_type)
+            null_left_type = left_type
         end
 
-        if isa(typ, Val{:inner})
-            # right cannot be null in innnerjoin
-            right_type = eltype(rdata)
+        right_type = eltype(rdata)
+        if !isa(typ, Val{:inner})
+            null_right_type = map_params(x->DataValue{x}, eltype(rdata))
+            rnull = nullrow(null_right_type)
         else
-            right_type = map_params(x->DataValue{x}, eltype(rdata))
-            rnull = nullrow(right_type)
+            null_right_type = right_type
         end
 
         if f === concat_tup
@@ -197,7 +207,7 @@ function init_join_output(typ, grp, f, ldata, rdata, left, keepkeys, lkey, rkey,
             routput = similar(arrayof(right_type), 0)
             data = concat_cols(loutput, routput)
         else
-            out_type = _promote_op(f, left_type, right_type)
+            out_type = _promote_op(f, null_left_type, null_right_type)
             data = similar(arrayof(out_type), 0)
         end
     else
@@ -425,10 +435,56 @@ function Base.join(f, left::Dataset, right::Dataset;
 
     typ, grp = Val{how}(), Val{group}()
     I, data, ks, lout, rout, lnull, rnull, init_group, accumulate =
-        init_join_output(typ, grp, f, ldata, rdata, left, keepkeys, lkey, rkey, init_group, accumulate)
+        init_join_output(typ, grp, f, ldata, rdata,
+                         left, keepkeys, lkey, rkey,
+                         init_group, accumulate)
 
-    _join!(typ, grp, Val{keepkeys}(), f, I, data, ks, lout, rout, lnull, rnull,
-           lkey, rkey, ldata, rdata, lperm, rperm, init_group, accumulate)
+    lnull_idx, rnull_idx = _join!(typ, grp, Val{keepkeys}(), f, I,
+                                  data, ks, lout, rout, lnull, rnull,
+                                  lkey, rkey, ldata, rdata, lperm,
+                                  rperm, init_group, accumulate)
+
+    if !isempty(lnull_idx) && lout !== nothing
+        lnulls = zeros(Bool, length(lout))
+        lnulls[lnull_idx] = true
+        lout = if lout isa Columns
+            Columns(map(lout.columns) do col
+                        if col isa DataValueArray
+                            col.isnull[lnull_idx] = true
+                        else
+                            DataValueArray(col, lnulls)
+                        end
+                    end)
+        else
+            if lout isa DataValueArray
+                lout.isnull[lnull_idx] = true
+            else
+                DataValueArray(lout, lnulls)
+            end
+        end
+        data = concat_cols(lout, rout)
+    end
+
+    if !isempty(rnull_idx) && rout !== nothing
+        rnulls = zeros(Bool, length(rout))
+        rnulls[rnull_idx] = true
+        rout = if rout isa Columns
+            Columns(map(rout.columns) do col
+                        if col isa DataValueArray
+                            col.isnull[rnull_idx] = true
+                        else
+                            DataValueArray(col, rnulls)
+                        end
+                    end)
+        else
+            if rout isa DataValueArray
+                rout.isnull[rnull_idx] = true
+            else
+                DataValueArray(rout, rnulls)
+            end
+        end
+        data = concat_cols(lout, rout)
+    end
 
     if group && left isa NextTable && !(data isa Columns)
         data = Columns(groups=data)
