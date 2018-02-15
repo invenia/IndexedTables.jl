@@ -683,7 +683,7 @@ end
 
 @testset "specialselector" begin
     t = table([1, 2, 3], ["a", "b", "c"], [4, 5, 6], names = [:x, :y, :z], pkey = :x)
-    
+
     @test select(t, Keys()) == select(t, (:x,))
     @test select(t, (Keys(), :y)) == select(t, ((:x,), :y))
     @test select(t, Not(Keys())) == select(t, Not(:x)) == select(t, (:y, :z))
@@ -832,6 +832,11 @@ end
     @test groupby((mean, std, var), t, :y, select=:z) == table([1, 2], [3.5, 3.5], [2.3804761428476167, 0.7071067811865476], [5.666666666666667, 0.5], names=Symbol[:y, :mean, :std, :var])
     @test groupby(@NT(q25 = (z->quantile(z, 0.25)), q50 = median, q75 = (z->quantile(z, 0.75))), t, :y, select=:z) == table([1, 2], [1.75, 3.25], [3.5, 3.5], [5.25, 3.75], names=Symbol[:y, :q25, :q50, :q75])
     @test groupby(@NT(xmean = (:z => mean), ystd = ((:y => (-)) => std)), t, :x) == table([1, 2], [2.0, 5.0], [0.5773502691896257, 0.5773502691896257], names=Symbol[:x, :xmean, :ystd])
+    @test groupby(@NT(ncols = length∘colnames), t, :x) == table([1, 2], [2, 2], names = [:x, :ncols], pkey = :x)
+    func1 = (key, dd) -> key.x + length(dd)
+    @test groupby((:s => func1, ), t, :x, usekey = true) == table([1, 2], [4, 5], names = [:x, :s], pkey = :x)
+    func2 = (key, dd) -> key.x - length(dd)
+    @test groupby((:s => func1, :d => func2), t, :x, usekey = true) == table([1, 2], [4, 5], [-2, -1], names = [:x, :s, :d], pkey = :x)
 
     @test groupby(maximum,
                   NDSparse([1, 1, 1, 1, 1, 1],

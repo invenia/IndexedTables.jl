@@ -256,7 +256,7 @@ _apply_with_key(f, data, process_data) = _apply(f, process_data(data))
 
 _apply_with_key(f::Tup, key, data::Tup, process_data) = _apply(f, map(t->key, data), map(process_data, data))
 _apply_with_key(f::Tup, key, data, process_data) = _apply_with_key(f, key, columns(data), process_data)
-_apply_with_key(f, key, data, process_data) = _apply(f, key, process_cs(data))
+_apply_with_key(f, key, data, process_data) = _apply(f, key, process_data(data))
 
 function _groupby(f, key, data, perm, dest_key=similar(key,0),
                   dest_data=nothing, i1=1; usekey = false)
@@ -276,7 +276,7 @@ function _groupby(f, key, data, perm, dest_key=similar(key,0),
             if isa(val, Tup)
                 newdata = convert(Columns, newdata)
             end
-            return _groupby(f, key, data, perm, dest_key, newdata, i)
+            return _groupby(f, key, data, perm, dest_key, newdata, i; usekey = usekey)
         else
             push!(dest_data, val)
         end
@@ -370,6 +370,21 @@ x  normy
 1  3.5
 2  5.5
 2  5.5
+```
+
+The keyword option `usekey = true` allows to use information from the indexing column. `f` will need to accept two
+arguments, the first being the key (as a `Tuple` or `NamedTuple`) the second the data (as `Columns`).
+
+```jldoctest
+julia> t = table([1,1,2,2], [3,4,5,6], names=[:x,:y])
+
+julia> groupby((:x_plus_mean_y => (key, d) -> key.x + mean(d),),
+                              t, :x, select=:y, usekey = true)
+Table with 2 rows, 2 columns:
+x  x_plus_mean_y
+────────────────
+1  4.5
+2  7.5
 ```
 
 """
