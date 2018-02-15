@@ -251,11 +251,11 @@ end
 ## GroupBy
 
 _apply_with_key(f::Tup, data::Tup, process_data) = _apply(f, map(process_data, data))
-_apply_with_key(f::Tup, data, process_data) = _apply_with_key(f::Tup, columns(data), process_data)
+_apply_with_key(f::Tup, data, process_data) = _apply_with_key(f, columns(data), process_data)
 _apply_with_key(f, data, process_data) = _apply(f, process_data(data))
 
-_apply_with_key(f::Tup, key, data, process_data) = _apply_with_key(f, key, columns(data), process_data)
 _apply_with_key(f::Tup, key, data::Tup, process_data) = _apply(f, map(t->key, data), map(process_data, data))
+_apply_with_key(f::Tup, key, data, process_data) = _apply_with_key(f, key, columns(data), process_data)
 _apply_with_key(f, key, data, process_data) = _apply(f, key, process_cs(data))
 
 function _groupby(f, key, data, perm, dest_key=similar(key,0),
@@ -375,9 +375,8 @@ x  normy
 """
 function groupby end
 
-# t isa AbstractIndexedTable ? Not(by) :
 function groupby(f, t::Dataset, by=pkeynames(t);
-    select = valuenames(t), flatten=false, usekey = false)
+    select = t isa AbstractIndexedTable ? Not(by) : valuenames(t), flatten=false, usekey = false)
 
     data = rows(t, select)
     f = init_func(f, data)
