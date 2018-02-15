@@ -187,12 +187,16 @@ function init_join_output(typ, grp, f, ldata, rdata, left, keepkeys, lkey, rkey,
         if !isa(typ, Union{Val{:left}, Val{:inner}, Val{:anti}})
             null_left_type = map_params(x->DataValue{x}, eltype(ldata))
             lnull = nullrow(null_left_type)
+        else
+            null_left_type = left_type
         end
 
         right_type = eltype(rdata)
         if !isa(typ, Val{:inner})
             null_right_type = map_params(x->DataValue{x}, eltype(rdata))
             rnull = nullrow(null_right_type)
+        else
+            null_right_type = right_type
         end
 
         if f === concat_tup
@@ -203,7 +207,7 @@ function init_join_output(typ, grp, f, ldata, rdata, left, keepkeys, lkey, rkey,
             routput = similar(arrayof(right_type), 0)
             data = concat_cols(loutput, routput)
         else
-            out_type = _promote_op(f, left_type, right_type)
+            out_type = _promote_op(f, null_left_type, null_right_type)
             data = similar(arrayof(out_type), 0)
         end
     else
@@ -440,7 +444,7 @@ function Base.join(f, left::Dataset, right::Dataset;
                                   lkey, rkey, ldata, rdata, lperm,
                                   rperm, init_group, accumulate)
 
-    if !isempty(lnull_idx)
+    if !isempty(lnull_idx) && lout !== nothing
         lnulls = zeros(Bool, length(lout))
         lnulls[lnull_idx] = true
         lout = if lout isa Columns
@@ -461,7 +465,7 @@ function Base.join(f, left::Dataset, right::Dataset;
         data = concat_cols(lout, rout)
     end
 
-    if !isempty(rnull_idx)
+    if !isempty(rnull_idx) && rout !== nothing
         rnulls = zeros(Bool, length(rout))
         rnulls[rnull_idx] = true
         rout = if rout isa Columns
