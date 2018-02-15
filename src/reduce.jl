@@ -250,20 +250,25 @@ end
 
 ## GroupBy
 
+_apply_with_key(f::Tup, data::Tup, process_data) = _apply(f, map(process_data, data))
+_apply_with_key(f::Tup, data, process_data) = _apply_with_key(f::Tup, columns(data), process_data)
+_apply_with_key(f, data, process_data) = _apply(f, process_data(data))
+
+_apply_with_key(f::Tup, key, data, process_data) = _apply_with_key(f, key, columns(data), process_data)
+_apply_with_key(f::Tup, key, data::Tup, process_data) = _apply(f, map(t->key, data), map(process_data, data))
+_apply_with_key(f, key, data, process_data) = _apply(f, key, process_cs(data))
+
 function _groupby(f, key, data, perm, dest_key=similar(key,0),
-                  dest_data=nothing, i1=1)
+                  dest_data=nothing, i1=1; usekey = false)
     n = length(key)
-    cs = f isa Tup ? columns(data) : data
     while i1 <= n
         i = i1+1
         while i <= n && roweq(key, perm[i], perm[i1])
             i += 1
         end
-        if isa(cs, Tup)
-            val = _apply(f, map(t -> view(t, perm[i1:(i-1)]), cs))
-        else
-            val = _apply(f, view(cs, perm[i1:(i-1)]))
-        end
+        process_data = t -> view(t, perm[i1:(i-1)])
+        val = usekey ? _apply_with_key(f, key[perm[i1]], data, process_data) :
+                       _apply_with_key(f, data, process_data)
 
         push!(dest_key, key[perm[i1]])
         if dest_data === nothing
@@ -369,7 +374,11 @@ x  normy
 
 """
 function groupby end
-function groupby(f, t::Dataset, by=pkeynames(t); select=valuenames(t), flatten=false)
+
+# t isa AbstractIndexedTable ? Not(by) :
+function groupby(f, t::Dataset, by=pkeynames(t);
+    select = valuenames(t), flatten=false, usekey = false)
+
     data = rows(t, select)
     f = init_func(f, data)
     # we want to try and keep the column names
@@ -385,13 +394,13 @@ function groupby(f, t::Dataset, by=pkeynames(t); select=valuenames(t), flatten=f
 
     fs, input, S = init_inputs(f, data, reduced_type, true)
 
-    by == () && return _apply(fs, fs isa Tup ? columns(input) : input)
+    by == () && return usekey ? _apply_with_key(fs, (), input, identity) : _apply_with_key(fs, input, identity)
 
     key  = rows(t, by)
 
     perm = sortpermby(t, by)
     # Note: we're not using S here, we'll let _groupby figure it out
-    dest_key, dest_data = _groupby(fs, key, input, perm)
+    dest_key, dest_data = _groupby(fs, key, input, perm; usekey = usekey)
 
     t = convert(collectiontype(t), dest_key, dest_data, presorted=true, copy=false)
     t isa NextTable && flatten ?
