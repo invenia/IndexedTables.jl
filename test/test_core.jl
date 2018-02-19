@@ -804,7 +804,7 @@ end
     @test groupreduce(+, t, (:x, :y), select=:z) == table([1, 1, 2, 2], [1, 2, 1, 2], [3, 3, 11, 4], names=Symbol[:x, :y, :+])
     @test groupreduce((+, min, max), t, (:x, :y), select=:z) == table([1, 1, 2, 2], [1, 2, 1, 2], [3, 3, 11, 4], [1, 3, 5, 4], [2, 3, 6, 4], names=Symbol[:x, :y, :+, :min, :max])
     @test groupreduce(@NT(zsum = (+), zmin = min, zmax = max), t, (:x, :y), select=:z) == table([1, 1, 2, 2], [1, 2, 1, 2], [3, 3, 11, 4], [1, 3, 5, 4], [2, 3, 6, 4], names=Symbol[:x, :y, :zsum, :zmin, :zmax])
-    @test groupreduce(@NT(xsum = (:x => (+)), negysum = ((:y => (-)) => (+))), t, :x) == table([1, 2], [3, 6], [-4, -4], names=Symbol[:x, :xsum, :negysum])
+    @test groupreduce(@NT(xsum = :z => +, negysum = (:y => -) => +), t, :x) == table([1, 2], [6, 15], [-4, -4], names=Symbol[:x, :xsum, :negysum])
     t = NDSparse([1, 1, 1, 1, 2, 2],
                      [2, 2, 2, 3, 3, 3],
                      [1, 4, 3, 5, 2, 0], presorted=true)
