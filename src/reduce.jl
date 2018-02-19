@@ -223,7 +223,9 @@ x  xsum  negysum
 ```
 
 """
-function groupreduce(f, t::Dataset, by=pkeynames(t); select=valuenames(t))
+function groupreduce(f, t::Dataset, by=pkeynames(t);
+                     select = t isa AbstractIndexedTable ? Not(by) : valuenames(t))
+
     data = rows(t, select)
     if typeof(t)<:NextTable &&
         !isa(f, Tup) &&
@@ -391,10 +393,12 @@ x  x_plus_mean_y
 function groupby end
 
 function groupby(f, t::Dataset, by=pkeynames(t);
-    select = t isa AbstractIndexedTable ? Not(by) : valuenames(t), flatten=false, usekey = false)
+            select = t isa AbstractIndexedTable ? Not(by) : valuenames(t),
+            flatten=false, usekey = false)
 
     data = rows(t, select)
     f = init_func(f, data)
+
     # we want to try and keep the column names
     if typeof(t)<:NextTable &&
         !isa(f, Tup) &&

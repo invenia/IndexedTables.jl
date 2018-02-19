@@ -24,6 +24,7 @@ function best_perm_estimate(perms, cols)
 end
 
 function sortpermby(t, by; cache=false)
+    by = lowerselection(t, by)
     if !isa(by, Tuple)
         by = (by,)
     end
