@@ -246,7 +246,7 @@ end
 """
 `join([f, ] left, right; how, <options>)`
 
-Join two tables (`left` and `right`). `how` specifies which join method is used (one of `:inner`, `:left`, `:right`, `:outer` and `:anti`).
+Join two tables (`left` and `right`). `how` specifies which join method is used (one of `:inner`, `:left`, `:outer` and `:anti`).
 By default, join keys are implied to be the primary keys, but this can be changed using the `lkey` and `rkey` options. See Options section below.
 
 The function `f` must take 2 arguments: tuples of non-key fields from both tables as input. The fields chosen for `f` can be configured using `lselect` and `rselect` options. See Options section below. If `f` is not specified, then these tuples are concatenated to form the non-indexed fields of the output.
@@ -403,6 +403,10 @@ function Base.join(f, left::Dataset, right::Dataset;
                    init_group=nothing,
                    accumulate=nothing,
                    cache=true)
+
+    if !(how in [:inner, :left, :outer, :anti])
+        error("Invalid how: supported join types are :inner, :left, :outer, and :anti")
+    end
 
     lperm = sortpermby(left, lkey; cache=cache)
     rperm = sortpermby(right, rkey; cache=cache)
