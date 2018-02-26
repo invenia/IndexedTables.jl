@@ -571,7 +571,7 @@ struct Between{T1 <: Union{Int, Symbol}, T2 <: Union{Int, Symbol}}
     last::T2
 end
 
-const SpecialSelector = Union{Not, All, Keys, Between, Function}
+const SpecialSelector = Union{Not, All, Keys, Between, Function, Regex}
 
 lowerselection(t, s)                     = s
 lowerselection(t, s::Union{Int, Symbol}) = colindex(t, s)
@@ -580,6 +580,7 @@ lowerselection(t, s::Not)                = excludecols(t, lowerselection(t, s.co
 lowerselection(t, s::Keys)               = lowerselection(t, IndexedTables.pkeynames(t))
 lowerselection(t, s::Between)            = Tuple(colindex(t, s.first):colindex(t, s.last))
 lowerselection(t, s::Function)           = colindex(t, Tuple(filter(s, colnames(t))))
+lowerselection(t, s::Regex)              = lowerselection(t, x -> ismatch(s, string(x)))
 
 function lowerselection(t, s::All)
     s.cols == () && return lowerselection(t, valuenames(t))
