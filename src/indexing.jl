@@ -210,6 +210,13 @@ function flush!(t::NDSparse)
         # 1. form sorted array of temp values, preferring values added later (`right`)
         temp = NDSparse(t.index_buffer, t.data_buffer, copy=false, agg=right)
 
+        if any(isshared, _cols_tuple(keys(t)))
+            t.index = copy(keys(t))
+        end
+        if any(isshared, _cols_tuple(values(t)))
+            t.data = copy(values(t))
+        end
+
         # 2. merge in
         _merge!(t, temp, right)
 

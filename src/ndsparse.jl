@@ -2,7 +2,7 @@ export AbstractNDSparse, NDSparse, ndsparse
 
 abstract type AbstractNDSparse end
 
-struct NDSparse{T, D<:Tuple, C<:Columns, V<:AbstractVector} <: AbstractNDSparse
+mutable struct NDSparse{T, D<:Tuple, C<:Columns, V<:AbstractVector} <: AbstractNDSparse
     index::C
     data::V
     _table::NextTable

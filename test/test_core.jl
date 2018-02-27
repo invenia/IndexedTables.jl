@@ -1020,3 +1020,11 @@ end
     d[:x3] = :x2 => -
     @test d[] == table([1], [2], [-2], names=[:x1,:x2,:x3])
 end
+
+@testset "shared data setindex!" begin
+    x = ndsparse(([1,2], [3,4]), [5,6])
+    reinterpret(UInt8, columns(x)[1]) # set isshared flag
+    x[3,4] = 7
+    flush!(x)
+    @test x == ndsparse(([1,2,3],[3,4,4]), [5,6,7])
+end
