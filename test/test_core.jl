@@ -692,6 +692,7 @@ end
     @test select(t, All()) == t
     @test select(t, Between(:x, :z)) == select(t, (:x, :y, :z))
     @test select(t, i -> i == :y) == select(t, (:y,))
+    @test select(t, r"x|z") == select(t, (:x, :z))
 
     @test rows(t, Keys()) == rows(t, (:x,))
     @test rows(t, (Keys(), :y)) == rows(t, ((:x,), :y))
@@ -701,6 +702,7 @@ end
     @test rows(t, All()) == rows(t)
     @test rows(t, Between(:x, :z)) == rows(t, (:x, :y, :z))
     @test rows(t, i -> i == :y) == rows(t, (:y,))
+    @test rows(t, r"x|z") == rows(t, (:x, :z))
 
     @test columns(t, Keys()) == columns(t, (:x,))
     @test columns(t, (Keys(), :y)) == columns(t, ((:x,), :y))
@@ -710,6 +712,7 @@ end
     @test columns(t, All()) == columns(t)
     @test columns(t, Between(:x, :z)) == columns(t, (:x, :y, :z))
     @test columns(t, i -> i == :y) == columns(t, (:y,))
+    @test columns(t, r"x|z") == columns(t, (:x, :z))
 end
 
 @testset "dropna" begin
