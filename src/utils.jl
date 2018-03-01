@@ -356,3 +356,18 @@ end
 Base.@pure function concat_tup_type(T::Type, S::Type)
     Tuple{T,S}
 end
+
+# check to see if array has shared data
+# used in flush! to create a copy of the arrays
+function isshared(x)
+    try
+        resize!(x, length(x))
+        false
+    catch err
+        if err isa ErrorException && err.msg == "cannot resize array with shared data"
+            return true
+        else
+            rethrow(err)
+        end
+    end
+end
