@@ -1,6 +1,6 @@
 | JuliaDB docs | Build | Coverage |
 |--------------|-------|----------|
-| [![](https://img.shields.io/badge/docs-latest-blue.svg)](http://juliadb.org/latest/) | [![Build Status](https://travis-ci.org/JuliaComputing/IndexedTables.jl.svg?branch=master)](https://travis-ci.org/JuliaComputing/IndexedTables.jl)| [![codecov.io](https://codecov.io/github/JuliaComputing/IndexedTables.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaComputing/IndexedTables.jl?branch=master) |
+| [![](https://img.shields.io/badge/docs-stable-blue.svg)](http://juliadb.org/stable/) [![](https://img.shields.io/badge/docs-latest-blue.svg)](http://juliadb.org/latest/) | [![Build Status](https://travis-ci.org/JuliaComputing/IndexedTables.jl.svg?branch=master)](https://travis-ci.org/JuliaComputing/IndexedTables.jl)| [![codecov.io](https://codecov.io/github/JuliaComputing/IndexedTables.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaComputing/IndexedTables.jl?branch=master) |
 
 # IndexedTables.jl
 
@@ -10,8 +10,8 @@ be used on its own for efficient in-memory data processing and analytics.
 
 ## Data Structures 
 
-- **The two table types in IndexedTables differ in how data is stored and accessed.**
-- **There is no performance difference in querying, filtering, and map/reduce.**
+- **The two table types in IndexedTables differ in how data is accessed.**
+- **There is no performance difference between table types for operations such as selecting, filtering, and map/reduce.**
 
 First let's create some data to work with.
 
@@ -25,8 +25,8 @@ values = [91, 89, 91, 95, 83, 76]
 
 ### Table
 
-- Data is stored as a Vector of NamedTuples.  
-- Sorted by primary keys (`pkey`)
+- Data is accessed as a Vector of NamedTuples.  
+- Sorted by primary key(s), `pkey`.
 
 ```julia
 julia> t1 = table(@NT(city = city, dates = dates, values = values); pkey = [:city, :dates])
@@ -49,8 +49,8 @@ julia> first(t1)
 
 ### NDSparse
 
-- Data is stored as an N-dimensional sparse array with arbitrary indexes.
-- Sorted by indexes (first argument)
+- Data is accessed as an N-dimensional sparse array with arbitrary indexes.
+- Sorted by index variables (first argument).
 
 ```julia
 julia> t2 = ndsparse(@NT(city=city, dates=dates), @NT(value=values))
@@ -88,4 +88,4 @@ dates       city       │ value
 
 ## Get started
 
-For more information, check out the [JuliaDB API Reference](http://juliadb.org/latest/api/datastructures.html)
+For more information, check out the [JuliaDB API Reference](http://juliadb.org/latest/api/datastructures.html).
