@@ -596,7 +596,7 @@ function reducedim_vec(f, x::NDSparse, dims; with=valuenames(x))
     if isempty(keep)
         throw(ArgumentError("to remove all dimensions, use `reduce(f, A)`"))
     end
-    idxs, d = _groupby(f, keys(x, (keep...)), columns(x, with), sortpermby(x, (keep...)))
+    idxs, d = _groupby(f, keys(x, (keep...)), rows(x, with), sortpermby(x, (keep...)))
     NDSparse(idxs, d, presorted=true, copy=false)
 end
 
