@@ -795,9 +795,9 @@ end
 
 
 """
-`merge(a::Union{Table, NDSparse}, a::Union{Table, NDSparse})`
+`merge(a::Table, a::Table; pkey)`
 
-Merge rows from two datasets while keeping them ordered by primary keys.
+Merge rows from two datasets while keeping them ordered by primary keys (`pkey`). By default, if the tables have the same primary key columns in the same order, they will be used. Otherwise no primary key will be used. The tables must have the same column names. If they are not in the same order, the order from the first table will be used.
 
 # Examples:
 
@@ -831,7 +831,9 @@ x  y
 
 ```
 
-When merging two NDSparse objects, if the same key is present in both inputs, the value from the second input is chosen.
+`merge(a::NDSparse, a::NDSparse; agg)`
+
+Merge rows from two NDSparse objects. To keep unique keys, if a key is present in both inputs, the value from the second input is chosen. You can pass the `agg` keyword argument to combine the values with a custom function.
 
 ```jldoctest merge
 julia> a = ndsparse([1,3,5], [1,2,3]);
@@ -848,11 +850,6 @@ julia> merge(a,b)
 4 │ 3
 5 │ 3
 
-```
-
-However, you can pass the `agg` keyword argument to combine the values with a custom function.
-
-```jldoctest
 julia> merge(a,b,agg=+)
 1-d NDSparse with 5 values (Int64):
 1 │
@@ -866,10 +863,15 @@ julia> merge(a,b,agg=+)
 """
 function Base.merge(a::Dataset, b) end
 
-function Base.merge(a::NextTable, b::NextTable)
-    @assert colnames(a) == colnames(b)
-    @assert a.pkey == b.pkey
-    table(map(vcat, columns(a), columns(b)), pkey=a.pkey, copy=false)
+function Base.merge(a::NextTable, b::NextTable;
+                    pkey = pkeynames(a) == pkeynames(b) ? a.pkey : [])
+
+    if colnames(a) !== colnames(b) && Set(colnames(a)) == Set(colnames(b))
+        b = ColDict(b, copy=false)[(colnames(a)...)]
+    else
+        throw(ArgumentError("the tables don't have the same column names. Use `select` first."))
+    end
+    table(map(vcat, columns(a), columns(b)), pkey=pkey, copy=false)
 end
 
 function merge(x::NDSparse, xs::NDSparse...; agg = nothing)

@@ -758,6 +758,13 @@ end
     a = table([1, 3, 5], [1, 2, 3], names=[:x, :y], pkey=:x)
     b = table([2, 3, 4], [1, 2, 3], names=[:x, :y], pkey=:x)
     @test merge(a, b) == table([1, 2, 3, 3, 4, 5], [1, 1, 2, 2, 3, 3], names=Symbol[:x, :y])
+    c = merge(a, select(b, (:y, :x)))
+    @test merge(a, b) == c
+    @test c.pkey == [1]
+    d = reindex(b, :y)
+    e = merge(a, d)
+    @test Set(e) == Set(c)
+    @test e.pkey == []
     a = ndsparse([1, 3, 5], [1, 2, 3])
     b = ndsparse([2, 3, 4], [1, 2, 3])
     @test merge(a, b) == ndsparse(([1, 2, 3, 4, 5],), [1, 1, 2, 3, 3])
