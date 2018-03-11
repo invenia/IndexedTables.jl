@@ -237,7 +237,11 @@ Base.@pure function arrayof(S)
     elseif T<:Tuple
         Columns{T, Tuple{map(arrayof, T.parameters)...}}
     elseif T<:NamedTuple
-        Columns{T,namedtuple(fieldnames(T)...){map(arrayof, T.parameters)...}}
+        if nfields(T) == 0
+            Columns{namedtuple(), namedtuple()}
+        else
+            Columns{T,namedtuple(fieldnames(T)...){map(arrayof, T.parameters)...}}
+        end
     elseif T<:DataValue
         DataValueArray{T.parameters[1],1}
     else
@@ -304,7 +308,8 @@ end
 # this doesn't need it.
 
 function _map_params(f, T, S)
-    (f(_tuple_type_head(T), _tuple_type_head(S)), _map_params(f, _tuple_type_tail(T), _tuple_type_tail(S))...)
+    (f(_tuple_type_head(T), _tuple_type_head(S)),
+     _map_params(f, _tuple_type_tail(T), _tuple_type_tail(S))...)
 end
 
 _map_params(f, T::Type{Tuple{}},S::Type{Tuple{}}) = ()
@@ -332,6 +337,9 @@ Base.@pure @generated function map_params{T<:NamedTuple,S<:NamedTuple}(f, ::Type
     if fieldnames(T) != fieldnames(S)
         MethodError(map_params, (T,S))
     end
+    if nfields(T) == 0 && nfields(S) == 0
+        return T
+    end
     NT = Expr(:macrocall, :(NamedTuples.$(Symbol("@NT"))), fieldnames(T)...)
     :($NT{_map_params(f, T, S)...})
 end
@@ -350,7 +358,11 @@ end
 
 Base.@pure function concat_tup_type{
            T<:NamedTuple,S<:NamedTuple}(::Type{T}, ::Type{S})
-    namedtuple(fieldnames(T)..., fieldnames(S)...){T.parameters..., S.parameters...}
+    nfields(T) == 0 && nfields(S) == 0 ?
+        namedtuple() :
+        namedtuple(fieldnames(T)...,
+                   fieldnames(S)...){T.parameters...,
+                                     S.parameters...}
 end
 
 Base.@pure function concat_tup_type(T::Type, S::Type)
