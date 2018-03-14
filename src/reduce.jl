@@ -226,6 +226,13 @@ x  xsum  negysum
 function groupreduce(f, t::Dataset, by=pkeynames(t);
                      select = t isa AbstractIndexedTable ? Not(by) : valuenames(t))
 
+    if f isa ApplyColwise
+        if !(f.functions isa Union{Function, Type})
+            error("Only functions are supported in ApplyColwise for groupreduce")
+        end
+        return groupby(grp->colwise_group_fast(f.functions, grp), t, by; select=select)
+    end
+
     data = rows(t, select)
     if typeof(t)<:NextTable &&
         !isa(f, Tup) &&
@@ -249,6 +256,9 @@ function groupreduce(f, t::Dataset, by=pkeynames(t);
     convert(collectiontype(t), dest_key, dest_data,
             presorted=true, copy=false)
 end
+
+colwise_group_fast(f, grp::Union{Columns, Dataset}) = map(c->reduce(f, c), columns(grp))
+colwise_group_fast(f, grp::AbstractVector) = reduce(f, grp)
 
 ## GroupBy
 
