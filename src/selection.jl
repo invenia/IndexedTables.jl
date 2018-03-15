@@ -178,29 +178,25 @@ julia> pkeynames(t)
 
 ```
 """
-function reindex end
+function reindex(t::Dataset, by=pkeynames(t), select=excludecols(t, by); kwargs...)
+    reindex(collectiontype(t), t, by, select; kwargs...)
+end
 
-function reindex(T::Type, t, by, select; kwargs...)
+function reindex(T::Type, t, by, select; view=false, kwargs...)
     if !isa(by, Tuple)
-        return reindex(T, t, (by,), select; kwargs...)
+        return reindex(T, t, (by,), select; view=view, kwargs...)
     end
     if T <: NextTable && !isa(select, Tuple)
-        return reindex(T, t, by, (select,); kwargs...)
+        return reindex(T, t, by, (select,); view=view, kwargs...)
     end
     perm = sortpermby(t, by)
     if isa(perm, Base.OneTo)
         convert(T, rows(t, by), rows(t, select); presorted=true, kwargs...)
+    elseif view
+        convert(T, Base.view(rows(t, by), perm), Base.view(rows(t, select), perm); presorted=true, copy=false, kwargs...)
     else
         convert(T, rows(t, by)[perm], rows(t, select)[perm]; presorted=true, copy=false, kwargs...)
     end
-end
-
-function reindex(t::NextTable, by=pkeynames(t), select=excludecols(t, by); kwargs...)
-    reindex(collectiontype(t), t, by, select; kwargs...)
-end
-
-function reindex(t::NDSparse, by=pkeynames(t), select=valuenames(t); kwargs...)
-    reindex(collectiontype(t), t, by, select; kwargs...)
 end
 
 canonname(t, x::Symbol) = x
@@ -349,9 +345,6 @@ end
 
 filt_by_col!(f, col, indxs) = filter!(i->f(col[i]), indxs)
 
-Base.@deprecate select(arr::NDSparse, conditions::Pair...) filter(conditions, arr)
-Base.@deprecate select(arr::NDSparse, which::DimName...; agg=nothing) selectkeys(arr, which; agg=agg)
-
 """
 `filter(pred, t::Union{NextTable, NDSparse}; select)`
 
@@ -448,13 +441,17 @@ n    t    │
 ```
 
 """
-function Base.filter(fn, t::Dataset; select=valuenames(t))
+function Base.filter(fn, t::Dataset; select=valuenames(t), view=false)
     x = rows(t, select)
     indxs = filter(i->fn(x[i]), eachindex(x))
-    subtable(t, indxs)
+    if view
+        Base.view(t, indxs, presorted=true)
+    else
+        subtable(t, indxs)
+    end
 end
 
-function Base.filter(pred::Tuple, t::Dataset; select=nothing)
+function Base.filter(pred::Tuple, t::Dataset; select=nothing, view=false)
     indxs = [1:length(t);]
     x = select === nothing ? t : rows(t, select)
     for p in pred
@@ -465,15 +462,27 @@ function Base.filter(pred::Tuple, t::Dataset; select=nothing)
             filt_by_col!(p, x, indxs)
         end
     end
-    subtable(t, indxs)
+    if view
+        Base.view(t, indxs, presorted=true)
+    else
+        subtable(t, indxs)
+    end
 end
 
-function Base.filter(pred::Pair, t::Dataset; select=nothing)
-    filter((pred,), t, select=select)
+function Base.view(t::NextTable, indxs; presorted=false)
+    table(view(rows(t), indxs); presorted=true, pkey = presorted ? t.pkey : Int[])
+end
+
+function Base.view(t::NDSparse, indxs; presorted=false)
+    ndsparse(view(keys(t), indxs), view(values(t), indxs); presorted=presorted)
+end
+
+function Base.filter(pred::Pair, t::Dataset; select=nothing, view=false)
+    filter((pred,), t, select=select, view=view)
 end
 
 # We discard names of fields in a named tuple. keeps it consistent
 # with map and reduce, we don't select using those
-function Base.filter(pred::NamedTuple, t::Dataset; select=nothing)
-    filter(astuple(pred), t, select=select)
+function Base.filter(pred::NamedTuple, t::Dataset; select=nothing, view=false)
+    filter(astuple(pred), t, select=select, view=view)
 end

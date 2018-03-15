@@ -7,8 +7,8 @@ mutable struct NDSparse{T, D<:Tuple, C<:Columns, V<:AbstractVector} <: AbstractN
     data::V
     _table::NextTable
 
-    index_buffer::C
-    data_buffer::V
+    index_buffer
+    data_buffer
 end
 
 function NextTable(nds::NDSparse; kwargs...)

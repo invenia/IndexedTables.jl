@@ -305,15 +305,6 @@ Base.getindex(t::NextTable, i::Integer) = getindex(t.columns, i)
 Base.getindex(t::NextTable, i::Colon) = copy(t)
 Base.endof(t::NextTable) = length(t)
 
-function Base.view(t::NextTable, I)
-    issorted(I) || throw(ArgumentError("`view` called with unsorted index."))
-    table(
-        view(t.columns, I),
-        pkey = t.pkey,
-        copy = false,
-        presorted = true)
-end
-
 Base.length(t::NextTable) = length(t.columns)
 Base.start(t::NextTable) = start(t.columns)
 Base.next(t::NextTable, i) = next(t.columns, i)
