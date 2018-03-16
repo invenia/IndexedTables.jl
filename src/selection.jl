@@ -447,7 +447,7 @@ function Base.filter(fn, t::Dataset; select=valuenames(t), view=false)
     if view
         Base.view(t, indxs, presorted=true)
     else
-        subtable(t, indxs)
+        subtable(t, indxs, presorted=true)
     end
 end
 
