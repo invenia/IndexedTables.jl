@@ -473,8 +473,8 @@ function Base.view(t::NextTable, indxs; presorted=false)
     table(view(rows(t), indxs); presorted=true, pkey = presorted ? t.pkey : Int[])
 end
 
-function Base.view(t::NDSparse, indxs; presorted=false)
-    ndsparse(view(keys(t), indxs), view(values(t), indxs); presorted=presorted)
+function Base.view(t::NDSparse, indxs; presorted=issorted(indxs), copy=!presorted)
+    ndsparse(view(keys(t), indxs), view(values(t), indxs); presorted=presorted, copy=copy)
 end
 
 function Base.filter(pred::Pair, t::Dataset; select=nothing, view=false)
