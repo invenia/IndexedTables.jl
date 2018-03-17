@@ -224,7 +224,8 @@ x  xsum  negysum
 
 """
 function groupreduce(f, t::Dataset, by=pkeynames(t);
-                     select = t isa AbstractIndexedTable ? Not(by) : valuenames(t))
+                     select = t isa AbstractIndexedTable ? Not(by) : valuenames(t),
+                     cache=false)
 
     if f isa ApplyColwise
         if !(f.functions isa Union{Function, Type})
@@ -238,13 +239,13 @@ function groupreduce(f, t::Dataset, by=pkeynames(t);
         !isa(f, Tup) &&
         !(reduced_type(f, data, false) <: Tup)
         # Name the result after the function
-        return groupreduce((f,), t, by, select=select)
+        return groupreduce((f,), t, by, select=select, cache=cache)
     end
     if !isa(by, Tuple)
         by=(by,)
     end
     key  = rows(t, by)
-    perm = sortpermby(t, by)
+    perm = sortpermby(t, by, cache=cache)
 
     dest_key = similar(key, 0)
 
