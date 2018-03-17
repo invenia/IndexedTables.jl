@@ -306,7 +306,8 @@ Base.getindex(t::NextTable, i::Colon) = copy(t)
 Base.endof(t::NextTable) = length(t)
 
 function Base.view(t::NextTable, I)
-    issorted(I) || throw(ArgumentError("`view` called with unsorted index."))
+    t.pkey == Int64[] || eltype(I) == Bool || issorted(I) ||
+        throw(ArgumentError("`view` called with unsorted index."))
     table(
         view(t.columns, I),
         pkey = t.pkey,
@@ -319,7 +320,7 @@ Base.start(t::NextTable) = start(t.columns)
 Base.next(t::NextTable, i) = next(t.columns, i)
 Base.done(t::NextTable, i) = done(t.columns, i)
 function getindex(t::NextTable, idxs::AbstractVector{<:Integer})
-    if issorted(idxs)
+    if t.pkey == Int64[] || eltype(idxs) == Bool || issorted(idxs)
        #perms = map(t.perms) do p
        #    # TODO: make the ranks continuous
        #    Perm(p.columns, p.perm[idxs])
