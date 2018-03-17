@@ -192,7 +192,7 @@ function reindex(T::Type, t, by, select; kwargs...)
     end
     perm = sortpermby(t, by)
     if isa(perm, Base.OneTo)
-        convert(T, rows(t, by), rows(t, select); presorted=true, kwargs...)
+        convert(T, rows(t, by), rows(t, select); presorted=true, copy=false, kwargs...)
     else
         convert(T, rows(t, by)[perm], rows(t, select)[perm]; presorted=true, copy=false, kwargs...)
     end
@@ -467,7 +467,7 @@ function Base.filter(pred::Tuple, t::Dataset; select=nothing)
             filt_by_col!(p, x, indxs)
         end
     end
-    subtable(t, indxs)
+    subtable(t, indxs, presorted=true)
 end
 
 function Base.filter(pred::Pair, t::Dataset; select=nothing)
