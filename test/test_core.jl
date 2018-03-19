@@ -1023,6 +1023,7 @@ end
 @testset "flatten" begin
     x = table([1,2], [[3,4], [5,6]], names=[:x, :y])
     @test flatten(x, 2) == table([1,1,2,2], [3,4,5,6], names=[:x,:y])
+    @test flatten(x, 2) == flatten(x)
 
     x = table([1,2], [table([3,4],[5,6], names=[:a,:b]), table([7,8], [9,10], names=[:a,:b])], names=[:x, :y]);
     @test flatten(x, :y) == table([1,1,2,2], [3,4,7,8], [5,6,9,10], names=[:x,:a, :b])
@@ -1033,6 +1034,8 @@ end
     t=table([1,1,1,2,2,2], [1,1,2,1,1,2], [1,2,3,4,5,6], names=[:x,:y,:z], pkey=[1,2]);
     @test groupby(identity, t, (:x, :y), select=:z, flatten = true) == renamecol(t, :z, :identity)
     @test groupby(identity, t, (:x, :y), select=:z, flatten = true).pkey == [1,2]
+    # If return type is non iterable, return the same as non flattened
+    @test groupby(i -> @NT(y = :y), t, :x, flatten=true) == groupby(i -> @NT(y = :y), t, :x, flatten=false)
 end
 
 @testset "ColDict" begin

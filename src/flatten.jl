@@ -164,9 +164,10 @@ function _flatten!(others, vecvec, out_others, out_vecvec)
 end
 
 """
-`flatten(t::Table, col)`
+`flatten(t::Table, col=length(columns(t)))`
 
 Flatten `col` column which may contain a vector of vectors while repeating the other fields.
+If column argument is not provided, default to last column.
 
 ## Examples:
 
@@ -201,8 +202,9 @@ x  a  b
 ```
 
 """
-function flatten(t::NextTable, col; pkey=nothing)
+function flatten(t::NextTable, col=length(columns(t)); pkey=nothing)
     vecvec = rows(t, col)
+    method_exists(start, (eltype(vecvec),)) || return t
     everythingbut = excludecols(t, col)
 
     order_others = Int[colindex(t, everythingbut)...]
