@@ -267,9 +267,7 @@ function map(f, t::Dataset; select=nothing)
         select = valuenames(t)
     end
 
-    fs, input, T = init_inputs(f, rows(t, select), mapped_type, false)
-    x = similar(arrayof(T), length(t))
-    map!(a->_apply(fs, a), x, input)
+    x = _map(f, rows(t, select))
     isa(x, Columns) ? table(x) : x
 end
 

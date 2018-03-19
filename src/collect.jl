@@ -78,8 +78,12 @@ function grow_to_columns!(dest::AbstractArray{T}, itr, offs, st) where {T}
     return dest
 end
 
-@generated function fieldwise_isa(el::S, ::Type{T}) where {S<:Tup, T}
-    if all((s <: t) for (s, t) in zip(S.parameters, T.parameters))
+# extra methods if we have widened to Vector{Tuple} or Vector{NamedTuple}
+fieldwise_isa(el::S, ::Type{Tuple}) where {S<:Tup} = S <: Tuple
+fieldwise_isa(el::S, ::Type{NamedTuple}) where {S<:Tup} = S <: NamedTuple
+
+@generated function fieldwise_isa(el::S, ::Type{T}) where {S<:Tup, T<:Tup}
+    if (fieldnames(S) == fieldnames(T)) && all((s <: t) for (s, t) in zip(S.parameters, T.parameters))
         return :(true)
     else
         return :(false)
@@ -94,14 +98,20 @@ end
     end
 end
 
-function widencolumns(dest, i, el::S, ::Type{T}) where{S <: Tup, T}
-    sp, tp = S.parameters, T.parameters
-    idx = find(!(s <: t) for (s, t) in zip(sp, tp))
-    new = dest
-    for l in idx
-        newcol = Array{promote_type(sp[l], tp[l])}(length(dest))
-        copy!(newcol, 1, column(dest, l), 1, i-1)
-        new = setcol(new, l, newcol)
+function widencolumns(dest, i, el::S, ::Type{T}) where{S <: Tup, T<:Tup}
+    if fieldnames(S) == fieldnames(T)
+        sp, tp = S.parameters, T.parameters
+        idx = find(!(s <: t) for (s, t) in zip(sp, tp))
+        new = dest
+        for l in idx
+            newcol = Array{promote_type(sp[l], tp[l])}(length(dest))
+            copy!(newcol, 1, column(dest, l), 1, i-1)
+            new = setcol(new, l, newcol)
+        end
+    else
+        R = (S <: Tuple) && (T <: Tuple) ? Tuple :  (S <: NamedTuple) && (T <: NamedTuple) ? NamedTuple : Any
+        new = Array{R}(length(dest))
+        copy!(new, 1, dest, 1, i-1)
     end
     new
 end

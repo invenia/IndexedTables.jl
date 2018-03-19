@@ -427,14 +427,7 @@ convert(::Type{NDSparse}, ks, vs; kwargs...) = ndsparse(ks, vs; kwargs...)
 # map and convert
 
 function _map(f, xs)
-    T = _promote_op(f, eltype(xs))
-    if T<:Tup
-        out_T = arrayof(T)
-        out = similar(out_T, length(xs))
-        map!(f, out, xs)
-    else
-        map(f, xs)
-    end
+    collect_columns(f(i) for i in xs)
 end
 
 """

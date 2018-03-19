@@ -572,7 +572,7 @@ end
 
     t3 = map(x->ntuple(identity, x.x), t)
     @test isa(t3.data, Vector)
-    @test eltype(t3.data) <: Tuple{Vararg{Int}}
+    @test eltype(t3.data) == Tuple
 
     y = [1, 1//2, "x"]
     function f(x)
@@ -581,6 +581,10 @@ end
     t4 = map(f, t)
     @test isa(t4.data, Columns)
     @test eltype(t4.data) <: Tuple{Int, Any}
+
+    t5 = table([1,2], ["a", "b"], names = [:x, :y])
+    s = [:x, :y]
+    @test map(i -> Tuple(getfield(i, j) for j in s), t5) == table([1,2], ["a", "b"])
 end
 
 @testset "join" begin
