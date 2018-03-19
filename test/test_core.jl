@@ -392,8 +392,12 @@ end
     t = table(cs, copy=false, pkey=:x)
 
     @test t[1] == @NT(x=1.2, y=3)
+    @test t[[true, false]] == t[[1]]
     @test t[[1,2]].columns == t.columns
     @test_throws ArgumentError t[[2,1]]
+
+    s = table(cs)
+    @test s[[2,1]] == table(rows(s)[[2,1]])
 end
 
 @testset "view & range" begin
@@ -403,6 +407,8 @@ end
     v = collect(1:10)
     t = view(table(v), 1:2)
     @test columns(t, 1) == view(v, 1:2)
+    @test view(table(1:2), [true, false]) == view(table(1:2), [1])
+    @test_throws ArgumentError view(table(1:2, pkey = 1), [2,1])
 end
 
 @testset "sortpermby" begin
