@@ -79,6 +79,7 @@ function grow_to_columns!(dest::AbstractArray{T}, itr, offs, st) where {T}
 end
 
 # extra methods if we have widened to Vector{Tuple} or Vector{NamedTuple}
+# better to not generate as this is the case where the user is sending heterogenoeus data
 fieldwise_isa(el::S, ::Type{Tuple}) where {S<:Tup} = S <: Tuple
 fieldwise_isa(el::S, ::Type{NamedTuple}) where {S<:Tup} = S <: NamedTuple
 
