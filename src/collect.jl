@@ -99,7 +99,11 @@ end
 end
 
 function widencolumns(dest, i, el::S, ::Type{T}) where{S <: Tup, T<:Tup}
-    if fieldnames(S) == fieldnames(T)
+    if fieldnames(S) != fieldnames(T) || S == Tuple || S == NamedTuple
+        R = (S <: Tuple) && (T <: Tuple) ? Tuple :  (S <: NamedTuple) && (T <: NamedTuple) ? NamedTuple : Any
+        new = Array{R}(length(dest))
+        copy!(new, 1, dest, 1, i-1)
+    else
         sp, tp = S.parameters, T.parameters
         idx = find(!(s <: t) for (s, t) in zip(sp, tp))
         new = dest
@@ -108,10 +112,6 @@ function widencolumns(dest, i, el::S, ::Type{T}) where{S <: Tup, T<:Tup}
             copy!(newcol, 1, column(dest, l), 1, i-1)
             new = setcol(new, l, newcol)
         end
-    else
-        R = (S <: Tuple) && (T <: Tuple) ? Tuple :  (S <: NamedTuple) && (T <: NamedTuple) ? NamedTuple : Any
-        new = Array{R}(length(dest))
-        copy!(new, 1, dest, 1, i-1)
     end
     new
 end
