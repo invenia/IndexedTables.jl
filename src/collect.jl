@@ -99,7 +99,7 @@ end
 end
 
 function widencolumns(dest, i, el::S, ::Type{T}) where{S <: Tup, T<:Tup}
-    if fieldnames(S) != fieldnames(T) || S == Tuple || S == NamedTuple
+    if fieldnames(S) != fieldnames(T) || T == Tuple || T == NamedTuple
         R = (S <: Tuple) && (T <: Tuple) ? Tuple :  (S <: NamedTuple) && (T <: NamedTuple) ? NamedTuple : Any
         new = Array{R}(length(dest))
         copy!(new, 1, dest, 1, i-1)
