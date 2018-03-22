@@ -444,6 +444,9 @@ function map_rows(f, iters...)
     collect_columns(f(i...) for i in zip(iters...))
 end
 
+# 1-arg case
+map_rows(f, iter) = collect_columns(f(i) for i in iter)
+
 ## Special selectors to simplify column selector
 
 """

@@ -13,6 +13,7 @@ let c = Columns([1,1,1,2,2], [1,2,4,3,5]),
     @test length(map(+,NDSparse(e,ones(3)),NDSparse(f,ones(3)))) == 1
     @test eltype(c) == Tuple{Int,Int}
     @test map_rows(i -> @NT(exp = exp(i), log = log(i)), 1:5) == Columns(@NT(exp = exp.(1:5), log = log.(1:5)))
+    @test map_rows(tuple, 1:3, ["a","b","c"]) == Columns([1,2,3], ["a","b","c"])
 end
 
 srand(123)
