@@ -267,7 +267,7 @@ function map(f, t::Dataset; select=nothing)
         select = valuenames(t)
     end
 
-    x = _map(f, rows(t, select))
+    x = map_rows(f, rows(t, select))
     isa(x, Columns) ? table(x) : x
 end
 

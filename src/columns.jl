@@ -5,7 +5,7 @@ import Base:
     summary, resize!, vcat, serialize, deserialize, append!, copy!, view
 
 export Columns, colnames, ncols, ColDict, insertafter!, insertbefore!, @cols, setcol, pushcol, popcol, insertcol, insertcolafter, insertcolbefore, renamecol
-
+export map_rows
 export All, Not, Between, Keys
 
 """
@@ -417,6 +417,31 @@ end
         end
     end
     ex
+end
+
+# map
+
+"""
+`map_rows(f, c...)`
+
+Transform collection `c` by applying `f` to each element. For multiple collection arguments, apply `f`
+elementwise. Collect output as `Columns` if `f` returns
+`Tuples` or `NamedTuples` with constant fields, as `Array` otherwise.
+
+# Examples
+
+```jldoctest map_rows
+julia> map_rows(i -> @NT(exp = exp(i), log = log(i)), 1:5)
+5-element IndexedTables.Columns{NamedTuples._NT_exp_log{Float64,Float64},NamedTuples._NT_exp_log{Array{Float64,1},Array{Float64,1}}}:
+ (exp = 2.71828, log = 0.0)
+ (exp = 7.38906, log = 0.693147)
+ (exp = 20.0855, log = 1.09861)
+ (exp = 54.5982, log = 1.38629)
+ (exp = 148.413, log = 1.60944)
+```
+"""
+function map_rows(f, iters...)
+    collect_columns(f(i...) for i in zip(iters...))
 end
 
 ## Special selectors to simplify column selector

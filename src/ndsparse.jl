@@ -426,10 +426,6 @@ convert(::Type{NDSparse}, ks, vs; kwargs...) = ndsparse(ks, vs; kwargs...)
 
 # map and convert
 
-function _map(f, xs)
-    collect_columns(f(i) for i in xs)
-end
-
 """
     map(f, x::NDSparse; select)
 
@@ -480,7 +476,7 @@ t    │
 ```
 """
 function map(f, x::NDSparse; select=x.data)
-    ndsparse(copy(x.index), _map(f, rows(x, select)),
+    ndsparse(copy(x.index), map_rows(f, rows(x, select)),
              presorted=true, copy=false)
 end
 
