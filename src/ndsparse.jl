@@ -426,17 +426,6 @@ convert(::Type{NDSparse}, ks, vs; kwargs...) = ndsparse(ks, vs; kwargs...)
 
 # map and convert
 
-function _map(f, xs)
-    T = _promote_op(f, eltype(xs))
-    if T<:Tup
-        out_T = arrayof(T)
-        out = similar(out_T, length(xs))
-        map!(f, out, xs)
-    else
-        map(f, xs)
-    end
-end
-
 """
     map(f, x::NDSparse; select)
 
@@ -487,7 +476,7 @@ t    │
 ```
 """
 function map(f, x::NDSparse; select=x.data)
-    ndsparse(copy(x.index), _map(f, rows(x, select)),
+    ndsparse(copy(x.index), map_rows(f, rows(x, select)),
              presorted=true, copy=false)
 end
 

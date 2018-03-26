@@ -12,6 +12,8 @@ let c = Columns([1,1,1,2,2], [1,2,4,3,5]),
     @test map(+,NDSparse(c,ones(5)),NDSparse(d,ones(5))).index == Columns([1,2],[1,5])
     @test length(map(+,NDSparse(e,ones(3)),NDSparse(f,ones(3)))) == 1
     @test eltype(c) == Tuple{Int,Int}
+    @test map_rows(i -> @NT(exp = exp(i), log = log(i)), 1:5) == Columns(@NT(exp = exp.(1:5), log = log.(1:5)))
+    @test map_rows(tuple, 1:3, ["a","b","c"]) == Columns([1,2,3], ["a","b","c"])
 end
 
 srand(123)
@@ -572,7 +574,7 @@ end
 
     t3 = map(x->ntuple(identity, x.x), t)
     @test isa(t3.data, Vector)
-    @test eltype(t3.data) <: Tuple{Vararg{Int}}
+    @test eltype(t3.data) == Tuple
 
     y = [1, 1//2, "x"]
     function f(x)
@@ -581,6 +583,10 @@ end
     t4 = map(f, t)
     @test isa(t4.data, Columns)
     @test eltype(t4.data) <: Tuple{Int, Any}
+
+    t5 = table([1,2], ["a", "b"], names = [:x, :y])
+    s = [:x, :y]
+    @test map(i -> Tuple(getfield(i, j) for j in s), t5) == table([1,2], ["a", "b"])
 end
 
 @testset "join" begin
