@@ -59,8 +59,8 @@ end
 
 function table(rows::AbstractArray{T}; kwargs...) where {T<:NamedTuple}
     source_data, source_names = TableTraitsUtils.create_columns_from_iterabletable(rows, array_factory=_array_factory)
-    
-    kwargs_dict = Dict(i[1]=>i[2] for i in kwargs)   
+
+    kwargs_dict = Dict{Symbol,Any}(i[1]=>i[2] for i in kwargs)
     kwargs_dict[:copy] = false
 
     return table(source_data..., names=source_names; kwargs_dict...)
@@ -70,7 +70,7 @@ function table(iter; kwargs...)
     if isiterabletable(iter)
         source_data, source_names = TableTraitsUtils.create_columns_from_iterabletable(iter, array_factory=_array_factory)
 
-        kwargs_dict = Dict(i[1]=>i[2] for i in kwargs)   
+        kwargs_dict = Dict{Symbol,Any}(i[1]=>i[2] for i in kwargs)
         kwargs_dict[:copy] = false
 
         return table(source_data..., names=source_names; kwargs_dict...)
