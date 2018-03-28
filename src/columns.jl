@@ -19,10 +19,11 @@ struct Columns{D<:Union{Tup, Pair}, C<:Union{Tup, Pair}} <: AbstractVector{D}
     columns::C
 
     function Columns{D,C}(c) where {D<:Tup,C<:Tup}
-        length(c) > 0 || error("must have at least one column")
-        n = length(c[1])
-        for i = 2:length(c)
-            length(c[i]) == n || error("all columns must have same length")
+        if !isempty(c)
+            n = length(c[1])
+            for i = 2:length(c)
+                length(c[i]) == n || error("all columns must have same length")
+            end
         end
         new{D,C}(c)
     end
@@ -160,7 +161,9 @@ columns(c::Columns) = c.columns
 # Array-like API
 
 eltype{D,C}(::Type{Columns{D,C}}) = D
-length(c::Columns) = length(c.columns[1])
+function length(c::Columns)
+    isempty(c.columns) ? 0 : length(c.columns[1])
+end
 length(c::Columns{<:Pair, <:Pair}) = length(c.columns.first)
 ndims(c::Columns) = 1
 
@@ -787,11 +790,7 @@ function rows end
 
 rows(x::AbstractVector) = x
 function rows(cols::Tup)
-    if nfields(cols) === 0
-        error("Cannot construct rows with 0 columns")
-    else
-        Columns(cols)
-    end
+    Columns(cols)
 end
 
 rows(t, which...) = rows(columns(t, which...))
