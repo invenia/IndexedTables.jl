@@ -15,7 +15,7 @@ A type that stores an array of tuples as a tuple of arrays.
 
 - `columns`: a tuple or named tuples of arrays. Also `columns(x)`
 """
-struct Columns{D<:Tup, C<:Tup} <: AbstractVector{D}
+struct Columns{D<:Union{Tup, Pair}, C<:Union{Tup, Pair}} <: AbstractVector{D}
     columns::C
 
     function Columns{D,C}(c) where {D<:Tup,C<:Tup}
@@ -24,6 +24,11 @@ struct Columns{D<:Tup, C<:Tup} <: AbstractVector{D}
         for i = 2:length(c)
             length(c[i]) == n || error("all columns must have same length")
         end
+        new{D,C}(c)
+    end
+
+    function Columns{D,C}(c::Pair) where {D<:Pair,C<:Pair{<:AbstractVector, <:AbstractVector}}
+        length(c.first) == length(c.second) || error("all columns must have same length")
         new{D,C}(c)
     end
 end
@@ -40,7 +45,7 @@ end
 
 Columns(; pairs...) = Columns(map(x->x[2],pairs)..., names=Symbol[x[1] for x in pairs])
 
-Columns(c::Tup) = Columns{eltypes(typeof(c)),typeof(c)}(c)
+Columns(c::Union{Tup, Pair}) = Columns{eltypes(typeof(c)),typeof(c)}(c)
 
 # IndexedTable-like API
 
@@ -111,6 +116,7 @@ Base.@pure colnames(t::AbstractVector) = [1]
 columns(v::AbstractVector) = v
 
 Base.@pure colnames(t::Columns) = fieldnames(eltype(t))
+Base.@pure colnames(t::Columns{<:Pair, <:Pair}) = colnames(t.columns.first) => colnames(t.columns.second)
 
 """
 `columns(itr[, select::Selection])`
@@ -155,6 +161,7 @@ columns(c::Columns) = c.columns
 
 eltype{D,C}(::Type{Columns{D,C}}) = D
 length(c::Columns) = length(c.columns[1])
+length(c::Columns{<:Pair, <:Pair}) = length(c.columns.first)
 ndims(c::Columns) = 1
 
 """
@@ -181,6 +188,7 @@ julia> ncols(ndsparse(d, [7,8,9]))
 """
 function ncols end
 ncols(c::Columns) = nfields(typeof(c.columns))
+ncols(c::Columns{<:Pair, <:Pair}) = ncols(c.columns.first) => ncols(c.columns.second)
 ncols(c::AbstractArray) = 1
 
 size(c::Columns) = (length(c),)
@@ -188,14 +196,15 @@ Base.IndexStyle(::Type{<:Columns}) = IndexLinear()
 summary(c::Columns{D}) where {D<:Tuple} = "$(length(c))-element Columns{$D}"
 
 empty!(c::Columns) = (foreach(empty!, c.columns); c)
+empty!(c::Columns{<:Pair, <:Pair}) = (foreach(empty!, c.columns.first.columns); foreach(empty!, c.columns.second.columns); c)
 
 function similar(c::Columns{D,C}) where {D,C}
-    cols = map(similar, c.columns)
+    cols = _map(similar, c.columns)
     Columns{D,typeof(cols)}(cols)
 end
 
 function similar(c::Columns{D,C}, n::Integer) where {D,C}
-    cols = map(a->similar(a,n), c.columns)
+    cols = _map(a->similar(a,n), c.columns)
     Columns{D,typeof(cols)}(cols)
 end
 
@@ -218,14 +227,15 @@ end
 
 getindex(c::Columns{D}, i::Integer) where {D<:Tuple} = ith_all(i, c.columns)
 getindex(c::Columns{D}, i::Integer) where {D<:NamedTuple} = D(ith_all(i, c.columns)...)
+getindex(c::Columns{D}, i::Integer) where {D<:Pair} = getindex(c.columns.first, i) => getindex(c.columns.second, i)
 
-getindex(c::Columns, p::AbstractVector) = Columns(map(c->c[p], c.columns))
+getindex(c::Columns, p::AbstractVector) = Columns(_map(c->c[p], c.columns))
 
-view(c::Columns, I) = Columns(map(a->view(a, I), c.columns))
+view(c::Columns, I) = Columns(_map(a->view(a, I), c.columns))
 
-@inline setindex!(I::Columns, r::Tup, i::Integer) = (foreach((c,v)->(c[i]=v), I.columns, r); I)
+@inline setindex!(I::Columns, r::Union{Tup, Pair}, i::Integer) = (foreach((c,v)->(c[i]=v), I.columns, r); I)
 
-@inline push!(I::Columns, r::Tup) = (foreach(push!, I.columns, r); I)
+@inline push!(I::Columns, r::Union{Tup, Pair}) = (foreach(push!, I.columns, r); I)
 
 append!(I::Columns, J::Columns) = (foreach(append!, I.columns, J.columns); I)
 
@@ -247,6 +257,17 @@ function ==(x::Columns, y::Columns)
     return true
 end
 
+==(x::Columns{<:Pair}, y::Columns) = false
+==(x::Columns, y::Columns{<:Pair}) = false
+==(x::Columns{<:Pair}, y::Columns{<:Pair}) = (x.columns.first == y.columns.first) && (x.columns.second == y.columns.second)
+
+function _strip_pair(c::Columns{<:Pair})
+    f, s = map(columns, c.columns)
+    (f isa AbstractVector) && (f = (f,))
+    (s isa AbstractVector) && (s = (s,))
+    Columns(f..., s...)
+end
+
 sortproxy(x::PooledArray) = x.refs
 sortproxy(x::AbstractArray) = x
 
@@ -261,7 +282,10 @@ function sortperm(c::Columns)
     return p
 end
 
+sortperm(c::Columns{<:Pair}) = sortperm(_strip_pair(c))
+
 issorted(c::Columns) = issorted(1:length(c), lt=(x,y)->rowless(c, x, y))
+issorted(c::Columns{<:Pair}) = issorted(_strip_pair(c))
 
 # assuming x[p] is sorted, sort by remaining columns where x[p] is constant
 function refine_perm!(p, cols, c, x, y, lo, hi)
@@ -292,6 +316,7 @@ function permute!(c::Columns, p::AbstractVector)
     end
     return c
 end
+permute!(c::Columns{<:Pair}, p::AbstractVector) = (permute!(c.columns.first, p); permute!(c.columns.second, p); c)
 sort!(c::Columns) = permute!(c, sortperm(c))
 sort(c::Columns) = c[sortperm(c)]
 
@@ -306,6 +331,12 @@ function Base.vcat(c::Columns, cs::Columns...)
     end
     Columns(map(vcat, map(x->x.columns, (c,cs...))...))
 end
+
+function Base.vcat(c::Columns{<:Pair}, cs::Columns{<:Pair}...)
+    Columns(vcat(c.columns.first, (x.columns.first for x in cs)...) =>
+            vcat(c.columns.second, (x.columns.second for x in cs)...))
+end
+
 
 abstract type SerializedColumns end
 

@@ -16,6 +16,43 @@ let c = Columns([1,1,1,2,2], [1,2,4,3,5]),
     @test map_rows(tuple, 1:3, ["a","b","c"]) == Columns([1,2,3], ["a","b","c"])
 end
 
+let c = Columns(Columns(@NT(a=[1,2,3])) => Columns(@NT(b=["a","b","c"])))
+    @test c.columns.first == Columns(@NT(a=[1,2,3]))
+    @test c.columns.second == Columns(@NT(b=["a","b","c"]))
+    @test colnames(c) == ([:a] => [:b])
+    @test length(c) == 3
+    @test ncols(c) == (1 => 1)
+    @test eltype(c) == typeof(@NT(a=1)=>@NT(b="a"))
+    @test c[1] == (@NT(a=1) => @NT(b="a"))
+    @test c[1:2] ==  Columns(Columns(@NT(a=[1,2])) => Columns(@NT(b=["a","b"])))
+    @test view(c, 1:2) == Columns(Columns(@NT(a=view([1,2,3],1:2)))=>Columns(@NT(b=view(["a","b","c"],1:2))))
+    d = deepcopy(c)
+    d[1] = @NT(a=2) => @NT(b="aa")
+    @test d[1] == (@NT(a=2) => @NT(b="aa"))
+    d = deepcopy(c)
+    push!(d, @NT(a=4) => @NT(b="d"))
+    @test d == Columns(Columns(@NT(a=[1,2,3,4])) => Columns(@NT(b=["a","b","c","d"])))
+    e = vcat(d, d)
+    append!(d, d)
+    @test d == Columns(Columns(@NT(a=[1,2,3,4,1,2,3,4])) => Columns(@NT(b=["a","b","c","d","a","b","c","d"])))
+    @test d == e
+    empty!(d)
+    @test d == c[Int64[]]
+    @test c != Columns(@NT(a=[1,2,3], b=["a","b","c"]))
+    @test IndexedTables.arrayof(eltype(c)) == typeof(c)
+    @test typeof(similar(c, 10)) == typeof(similar(typeof(c), 10)) == typeof(c)
+    @test length(similar(c, 10)) == 10
+    @test issorted(c)
+    @test sortperm(c) == [1,2,3]
+    permute!(c, [2,3, 1])
+    @test c == Columns(Columns(@NT(a=[2,3,1])) => Columns(@NT(b=["b","c","a"])))
+    f = Columns(Columns([1, 1, 2, 2]) => ["b", "a", "c", "d"])
+    @test IndexedTables._strip_pair(f) == Columns([1, 1, 2, 2], ["b", "a", "c", "d"])
+    @test sortperm(f) == [2, 1, 3, 4]
+    @test sort(f) == Columns(Columns([1, 1, 2, 2]) => ["a", "b", "c", "d"])
+    @test !issorted(f)
+end
+
 srand(123)
 A = NDSparse(rand(1:3,10), rand('A':'F',10), map(UInt8,rand(1:3,10)), collect(1:10), randn(10))
 B = NDSparse(map(UInt8,rand(1:3,10)), rand('A':'F',10), rand(1:3,10), randn(10))
