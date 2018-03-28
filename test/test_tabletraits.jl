@@ -59,4 +59,14 @@ it4 = table(as_set, copy=true)
 @test contains(==, as_set, it4[2])
 @test contains(==, as_set, it4[3])
 
+@testset "avoid too narrow dict value type" begin
+    # The array constructor
+    @test table([@NT(col1 = "A")], pkey = [1]) ==
+            table(["A"], names = [:col1], pkey = [1])
+
+    # The iterator constructor
+    @test table(Iterators.repeated(@NT(col1 = "A"), 2), pkey = [1]) ==
+            table(["A", "A"], names = [:col1], pkey = [1])
+end
+
 end
