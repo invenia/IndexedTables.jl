@@ -837,7 +837,6 @@ end
     @test reduce(+, t, select=:t) == 1.35
     @test reduce(((a, b)->@NT(t = a.t + b.t, x = a.x + b.x)), t) == @NT(t = 1.35, x = 3)
     @test value(reduce(Mean(), t, select=:t)) == (0.45,)
-    @test value(reduce(series(Mean(); transform = x -> -x), t, select=:t)) == (-0.45,)
     y = reduce((min, max), t, select=:x)
     @test y.max == 2
     @test y.min == 0
