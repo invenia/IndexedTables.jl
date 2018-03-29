@@ -1,4 +1,4 @@
-using OnlineStatsBase
+using OnlineStats
 export groupreduce, groupby, aggregate, aggregate_vec, summarize
 
 """
@@ -44,8 +44,11 @@ If `f` is an OnlineStat object from the [OnlineStats](https://github.com/joshday
 ```jldoctest reduce
 julia> using OnlineStats
 
-julia> reduce(Mean(), t, select =:t)
-Mean: n=3 | value=0.45
+julia> reduce(Mean(), t, select=:t)
+▦ Series{0,Tuple{Mean},EqualWeight}
+┣━━ EqualWeight(nobs = 3)
+┗━━━┓
+    ┗━━ Mean(0.45)
 ```
 
 # Reducing with multiple functions
@@ -77,13 +80,25 @@ You can also compute many OnlineStats by passing tuple or named tuple of OnlineS
 
 ```jldoctest reduce
 julia> y = reduce((Mean(), Variance()), t, select=:t)
-(Mean = Mean: n=3 | value=0.45, Variance = Variance: n=3 | value=0.1075)
+(Mean = ▦ Series{0,Tuple{Mean},EqualWeight}
+┣━━ EqualWeight(nobs = 3)
+┗━━━┓
+    ┗━━ Mean(0.45), Variance = ▦ Series{0,Tuple{Variance},EqualWeight}
+┣━━ EqualWeight(nobs = 3)
+┗━━━┓
+    ┗━━ Variance(0.1075))
 
 julia> y.Mean
-Mean: n=3 | value=0.45
+▦ Series{0,Tuple{Mean},EqualWeight}
+┣━━ EqualWeight(nobs = 3)
+┗━━━┓
+    ┗━━ Mean(0.45)
 
 julia> y.Variance
-Variance: n=3 | value=0.1075
+▦ Series{0,Tuple{Variance},EqualWeight}
+┣━━ EqualWeight(nobs = 3)
+┗━━━┓
+    ┗━━ Variance(0.1075)
 ```
 
 # Combining reduction and selection
