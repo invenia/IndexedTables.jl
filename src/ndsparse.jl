@@ -209,6 +209,8 @@ function ndsparse(x::Columns, y::AbstractVector; kwargs...)
     ndsparse(columns(x), y; kwargs...)
 end
 
+ndsparse(c::Columns{<:Pair}; kwargs...) =
+    convert(NDSparse, c.columns.first, c.columns.second; kwargs...)
 
 # backwards compat
 NDSparse(idx::Columns, data; kwargs...) = ndsparse(idx, data; kwargs...)

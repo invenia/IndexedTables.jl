@@ -268,7 +268,7 @@ function map(f, t::Dataset; select=nothing, copy=false, kwargs...)
     end
 
     x = map_rows(f, rows(t, select))
-    isa(x, Columns) ? convert(NextTable, x; copy=false, kwargs...) : x
+    isa(x, Columns) ? table(x; copy=false, kwargs...) : x
 end
 
 function _nonna(t::Union{Columns, NextTable}, by=(colnames(t)...))

@@ -58,12 +58,12 @@ function NDSparse(x; idxcols::Union{Void,Vector{Symbol}}=nothing, datacols::Unio
 end
 
 function table(rows::AbstractArray{T}; copy=false, kwargs...) where {T<:Union{Tup, Pair}}
-    convert(NextTable, collect_columns(rows); copy=false, kwargs...)
+    table(collect_columns(rows); copy=false, kwargs...)
 end
 
 function table(iter; copy=false, kwargs...)
     if TableTraits.isiterable(iter)
-        convert(NextTable, collect_columns(getiterator(iter)); copy=false, kwargs...)
+        table(collect_columns(getiterator(iter)); copy=false, kwargs...)
     else
         throw(ArgumentError("iter cannot be turned into a NextTable."))
     end

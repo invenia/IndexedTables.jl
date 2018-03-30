@@ -1021,7 +1021,7 @@ end
     a = [1,2,3]
     b = ["a","b","c"]
     v = Columns(Pair(a, b))
-    @test convert(NDSparse, a, b) == convert(NDSparse, v) == NDSparse(a, b)
+    @test convert(NDSparse, a, b) == convert(NDSparse, v) == ndsparse(v) == ndsparse(a, b)
 end
 
 @testset "mapslices" begin
