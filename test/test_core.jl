@@ -624,6 +624,8 @@ end
     t5 = table([1,2], ["a", "b"], names = [:x, :y])
     s = [:x, :y]
     @test map(i -> Tuple(getfield(i, j) for j in s), t5) == table([1,2], ["a", "b"])
+
+    @test map(t -> (1,2), table(Int[])) == table(Int[], Int[])
 end
 
 @testset "join" begin

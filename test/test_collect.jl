@@ -28,6 +28,15 @@
     @test collect_columns(tuple_itr) == Columns(@NT(a = [2, 4, 6, 8], b = [0, 2, 4, 6]))
     tuple_itr_real = (i == 1 ? @NT(a = 1.2, b =i-1) : @NT(a = i+1, b = i-1) for i in itr)
     @test collect_columns(tuple_itr_real) == Columns(@NT(a = Real[1.2, 4, 6, 8], b = [0, 2, 4, 6]))
+
+    # empty
+    itr = Iterators.filter(t -> t > 10, 1:8)
+    tuple_itr = (@NT(a = i+1, b = i-1) for i in itr)
+    @test collect_columns(tuple_itr) == Columns(@NT(a = Int[], b = Int[]))
+
+    itr = (i for i in 0:-1)
+    tuple_itr = (@NT(a = i+1, b = i-1) for i in itr)
+    @test collect_columns(tuple_itr) == Columns(@NT(a = Int[], b = Int[]))
 end
 
 @testset "collecttuples" begin
@@ -51,6 +60,15 @@ end
     tuple_itr_real = (i == 1 ? (1.2, i-1) : (i+1, i-1) for i in itr)
     @test collect_columns(tuple_itr_real) == Columns(([1.2, 4, 6, 8], [0, 2, 4, 6]))
     @test typeof(collect_columns(tuple_itr_real)) == typeof(Columns(([1.2, 4, 6, 8], [0, 2, 4, 6])))
+
+    # empty
+    itr = Iterators.filter(t -> t > 10, 1:8)
+    tuple_itr = ((i+1, i-1) for i in itr)
+    @test collect_columns(tuple_itr) == Columns(Int[], Int[])
+
+    itr = (i for i in 0:-1)
+    tuple_itr = ((i+1, i-1) for i in itr)
+    @test collect_columns(tuple_itr) == Columns(Int[], Int[])
 end
 
 @testset "collectscalars" begin
@@ -66,6 +84,15 @@ end
     real_itr = (i == 1 ? 1.5 : i for i in itr)
     @test collect_columns(real_itr) == collect(real_itr)
     @test eltype(collect_columns(real_itr)) == Float64
+
+    #empty
+    itr = Iterators.filter(t -> t > 10, 1:8)
+    tuple_itr = (exp(i) for i in itr)
+    @test collect_columns(tuple_itr) == Float64[]
+
+    itr = (i for i in 0:-1)
+    tuple_itr = (exp(i) for i in itr)
+    @test collect_columns(tuple_itr) == Float64[]
 end
 
 @testset "collectpairs" begin
@@ -84,4 +111,13 @@ end
     v = (i == 1 ? @NT(a="1") => @NT(b="a$i") : @NT(a=i) => @NT(b="a$i") for i in 1:3)
     @test collect_columns(v) == Columns(Columns(@NT(a = ["1",2,3]))=>Columns(@NT(b = ["a1","a2","a3"])))
     @test eltype(collect_columns(v)) == Pair{NamedTuples._NT_a{Any}, NamedTuples._NT_b{String}}
+
+    # empty
+    v = (@NT(a=i) => @NT(b="a$i") for i in 0:-1)
+    @test collect_columns(v) == Columns(Columns(@NT(a = Int[]))=>Columns(@NT(b = String[])))
+    @test eltype(collect_columns(v)) == Pair{NamedTuples._NT_a{Int}, NamedTuples._NT_b{String}}
+
+    v = Iterators.filter(t -> t.first.a == 4, (@NT(a=i) => @NT(b="a$i") for i in 1:3))
+    @test collect_columns(v) == Columns(Columns(@NT(a = Int[]))=>Columns(@NT(b = String[])))
+    @test eltype(collect_columns(v)) == Pair{NamedTuples._NT_a{Int}, NamedTuples._NT_b{String}}
 end

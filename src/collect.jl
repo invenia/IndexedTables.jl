@@ -26,8 +26,14 @@ julia> collect_columns(s)
 """
 collect_columns(itr) = collect_columns(itr, Base.iteratorsize(itr))
 
+function collect_empty_columns(itr::T) where {T}
+    S = Core.Inference.return_type(first, Tuple{T})
+    similar(arrayof(S), 0)
+end
+
 function collect_columns(itr, ::Union{Base.HasShape, Base.HasLength})
     st = start(itr)
+    done(itr, st) && return collect_empty_columns(itr)
     el, st = next(itr, st)
     dest = similar(arrayof(typeof(el)), length(itr))
     dest[1] = el
@@ -54,6 +60,7 @@ end
 
 function collect_columns(itr, ::Base.SizeUnknown)
     st = start(itr)
+    done(itr, st) && return collect_empty_columns(itr)
     el, st = next(itr, st)
     dest = similar(arrayof(typeof(el)), 1)
     dest[1] = el
