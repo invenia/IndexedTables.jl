@@ -69,4 +69,9 @@ it4 = table(as_set, copy=true)
             table(["A", "A"], names = [:col1], pkey = [1])
 end
 
+# Non NamedTuples iterators
+
+@test table([(1, 2), (3, 4)]) == table([1, 3], [2, 4])
+@test table([@NT(a=1) => @NT(b=2)]) == table([1], [2], names = [:a, :b], pkey = :a)
+
 end

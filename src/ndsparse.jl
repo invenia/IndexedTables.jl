@@ -423,6 +423,7 @@ function deserialize(s::AbstractSerializer, ::Type{SerializedNDSparse})
 end
 
 convert(::Type{NDSparse}, ks, vs; kwargs...) = ndsparse(ks, vs; kwargs...)
+convert(T::Type{NDSparse}, c::Columns{<:Pair}; kwargs...) = convert(T, c.columns.first, c.columns.second; kwargs...)
 
 # map and convert
 

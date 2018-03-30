@@ -581,6 +581,11 @@ function convert(::Type{NextTable}, key, val; kwargs...)
     table(cs, pkey=[1:ncols(key);]; kwargs...)
 end
 
+convert(T::Type{NextTable}, c::Columns{<:Pair}; kwargs...) = convert(T, c.columns.first, c.columns.second; kwargs...)
+convert(::Type{NextTable}, c; kwargs...) = table(c; kwargs...)
+# To prevent ambiguity
+convert(::Type{NextTable}, c::NextTable; kwargs...) = table(c; kwargs...)
+
 # showing
 
 import Base.Markdown.with_output_format

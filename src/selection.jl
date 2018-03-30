@@ -260,7 +260,7 @@ julia> map(sin, polar, select=:θ)
 """
 function map(f, t::AbstractIndexedTable; select=nothing) end
 
-function map(f, t::Dataset; select=nothing)
+function map(f, t::Dataset; select=nothing, copy=false, kwargs...)
     if isa(f, Tup) && select===nothing
         select = colnames(t)
     elseif select === nothing
@@ -268,7 +268,7 @@ function map(f, t::Dataset; select=nothing)
     end
 
     x = map_rows(f, rows(t, select))
-    isa(x, Columns) ? table(x) : x
+    isa(x, Columns) ? convert(NextTable, x; copy=false, kwargs...) : x
 end
 
 function _nonna(t::Union{Columns, NextTable}, by=(colnames(t)...))

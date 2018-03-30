@@ -624,6 +624,8 @@ end
     t5 = table([1,2], ["a", "b"], names = [:x, :y])
     s = [:x, :y]
     @test map(i -> Tuple(getfield(i, j) for j in s), t5) == table([1,2], ["a", "b"])
+    @test map(i -> (i.x => i.y), t5) == table([1,2], ["a","b"], pkey=1)
+    @test map(i -> (@NT(a = i.x-1)=>@NT(b=i.y)), t5) == table([0,1], ["a","b"], pkey=:a, names=[:a,:b])
 
     @test map(t -> (1,2), table(Int[])) == table(Int[], Int[])
 end
@@ -1016,6 +1018,10 @@ end
     nd[1:5,1:5] = 2
     @test nd == convert(NDSparse, spdiagm(fill(2, 5)))
 
+    a = [1,2,3]
+    b = ["a","b","c"]
+    v = Columns(Pair(a, b))
+    @test convert(NDSparse, a, b) == convert(NDSparse, v) == NDSparse(a, b)
 end
 
 @testset "mapslices" begin
