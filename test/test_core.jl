@@ -867,7 +867,7 @@ end
                     else
                         @NT y = x.y + y
                     end), t, :x, select=:z) == table([1, 2], [6, 15], names=Symbol[:x, :y])
-    @test groupreduce(:y => (+), t, :x, select=:z) == table([1, 2], [6, 15], names=Symbol[:x, :y])
+    @test groupreduce((:y => (+),), t, :x, select=:z) == table([1, 2], [6, 15], names=Symbol[:x, :y])
     t = table([1, 1, 1, 2, 2, 2], [1, 1, 2, 2, 1, 1], [1, 2, 3, 4, 5, 6], names=[:x, :y, :z])
     @test groupreduce(+, t, :x, select=:z) == table([1, 2], [6, 15], names=Symbol[:x, :+])
     @test groupreduce(+, t, (:x, :y), select=:z) == table([1, 1, 2, 2], [1, 2, 1, 2], [3, 3, 11, 4], names=Symbol[:x, :y, :+])
