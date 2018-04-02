@@ -248,6 +248,7 @@ function table(cs::Tup; chunks=nothing, kwargs...)
 end
 
 table(cs::Columns; kwargs...) = table(columns(cs); kwargs...)
+table(c::Columns{<:Pair}; kwargs...) = convert(NextTable, c.columns.first, c.columns.second; kwargs...)
 
 function table(cols::AbstractArray...; names=nothing, kwargs...)
     if isa(names, AbstractArray) && all(x->isa(x, Symbol), names)
@@ -581,6 +582,7 @@ function convert(::Type{NextTable}, key, val; kwargs...)
     table(cs, pkey=[1:ncols(key);]; kwargs...)
 end
 
+convert(T::Type{NextTable}, c::Columns{<:Pair}; kwargs...) = convert(T, c.columns.first, c.columns.second; kwargs...)
 # showing
 
 import Base.Markdown.with_output_format

@@ -57,23 +57,13 @@ function NDSparse(x; idxcols::Union{Void,Vector{Symbol}}=nothing, datacols::Unio
     end
 end
 
-function table(rows::AbstractArray{T}; kwargs...) where {T<:NamedTuple}
-    source_data, source_names = TableTraitsUtils.create_columns_from_iterabletable(rows, array_factory=_array_factory)
-
-    kwargs_dict = Dict{Symbol,Any}(i[1]=>i[2] for i in kwargs)
-    kwargs_dict[:copy] = false
-
-    return table(source_data..., names=source_names; kwargs_dict...)
+function table(rows::AbstractArray{T}; copy=false, kwargs...) where {T<:Union{Tup, Pair}}
+    table(collect_columns(rows); copy=false, kwargs...)
 end
 
-function table(iter; kwargs...)
-    if isiterabletable(iter)
-        source_data, source_names = TableTraitsUtils.create_columns_from_iterabletable(iter, array_factory=_array_factory)
-
-        kwargs_dict = Dict{Symbol,Any}(i[1]=>i[2] for i in kwargs)
-        kwargs_dict[:copy] = false
-
-        return table(source_data..., names=source_names; kwargs_dict...)
+function table(iter; copy=false, kwargs...)
+    if TableTraits.isiterable(iter)
+        table(collect_columns(getiterator(iter)); copy=false, kwargs...)
     else
         throw(ArgumentError("iter cannot be turned into a NextTable."))
     end

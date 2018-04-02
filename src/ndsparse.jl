@@ -209,6 +209,8 @@ function ndsparse(x::Columns, y::AbstractVector; kwargs...)
     ndsparse(columns(x), y; kwargs...)
 end
 
+ndsparse(c::Columns{<:Pair}; kwargs...) =
+    convert(NDSparse, c.columns.first, c.columns.second; kwargs...)
 
 # backwards compat
 NDSparse(idx::Columns, data; kwargs...) = ndsparse(idx, data; kwargs...)
@@ -423,6 +425,7 @@ function deserialize(s::AbstractSerializer, ::Type{SerializedNDSparse})
 end
 
 convert(::Type{NDSparse}, ks, vs; kwargs...) = ndsparse(ks, vs; kwargs...)
+convert(T::Type{NDSparse}, c::Columns{<:Pair}; kwargs...) = convert(T, c.columns.first, c.columns.second; kwargs...)
 
 # map and convert
 
