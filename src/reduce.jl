@@ -233,6 +233,7 @@ x  xsum  negysum
 function groupreduce(f, t::Dataset, by=pkeynames(t);
                      select = t isa AbstractIndexedTable ? Not(by) : valuenames(t))
 
+    isa(f, Pair) && (f = (f,))
     data = rows(t, select)
     by = lowerselection(t, by)
     if !isa(by, Tuple)
@@ -399,6 +400,7 @@ function groupby(f, t::Dataset, by=pkeynames(t);
             select = t isa AbstractIndexedTable ? Not(by) : valuenames(t),
             flatten=false, usekey = false)
 
+    isa(f, Pair) && (f = (f,))
     data = rows(t, select)
     f = init_func(f, data)
     by = lowerselection(t, by)

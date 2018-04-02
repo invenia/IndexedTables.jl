@@ -867,7 +867,7 @@ end
                     else
                         @NT y = x.y + y
                     end), t, :x, select=:z) == table([1, 2], [6, 15], names=Symbol[:x, :y])
-    @test groupreduce((:y => (+),), t, :x, select=:z) == table([1, 2], [6, 15], names=Symbol[:x, :y])
+    @test groupreduce(:y => (+), t, :x, select=:z) == table([1, 2], [6, 15], names=Symbol[:x, :y])
     t = table([1, 1, 1, 2, 2, 2], [1, 1, 2, 2, 1, 1], [1, 2, 3, 4, 5, 6], names=[:x, :y, :z])
     @test groupreduce(+, t, :x, select=:z) == table([1, 2], [6, 15], names=Symbol[:x, :+])
     @test groupreduce(+, t, (:x, :y), select=:z) == table([1, 1, 2, 2], [1, 2, 1, 2], [3, 3, 11, 4], names=Symbol[:x, :y, :+])
@@ -908,6 +908,7 @@ end
     @test groupby((:s => func1, ), t, :x, usekey = true) == table([1, 2], [4, 5], names = [:x, :s], pkey = :x)
     func2 = (key, dd) -> key.x - length(dd)
     @test groupby((:s => func1, :d => func2), t, :x, usekey = true) == table([1, 2], [4, 5], [-2, -1], names = [:x, :s, :d], pkey = :x)
+    @test groupby(:s => func1, t, :x, usekey = true) == table([1, 2], [4, 5], names = [:x, :s], pkey = :x)
     s(key, dd) = func1(key, dd)
     @test groupby(s, t, :x, usekey = true) == groupby((:s => func1, ), t, :x, usekey = true)
     s2(key, dd) = length(dd)
