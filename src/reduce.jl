@@ -1,5 +1,5 @@
 using OnlineStats
-export groupreduce, groupby, aggregate, aggregate_vec, summarize
+export groupreduce, groupby, aggregate, aggregate_vec, summarize, ApplyColwise
 
 """
 `reduce(f, t::Table; select::Selection)`
