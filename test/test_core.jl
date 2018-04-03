@@ -840,7 +840,7 @@ end
     t = table([0.1, 0.5, 0.75], [0, 1, 2], names=[:t, :x])
     @test reduce(+, t, select=:t) == 1.35
     @test reduce(((a, b)->@NT(t = a.t + b.t, x = a.x + b.x)), t) == @NT(t = 1.35, x = 3)
-    @test value(reduce(Mean(), t, select=:t)) == (0.45,)
+    @test value(reduce(Mean(), t, select=:t)) == 0.45
     y = reduce((min, max), t, select=:x)
     @test y.max == 2
     @test y.min == 0
@@ -848,8 +848,8 @@ end
     x = select(t, :x)
     @test y == @NT(sum = sum(x), prod = prod(x))
     y = reduce((Mean(), Variance()), t, select=:t)
-    @test value(y.Mean) == (0.45,)
-    @test value(y.Variance) == (0.10749999999999998,)
+    @test value(y.Mean) == 0.45
+    @test value(y.Variance) == 0.10749999999999998
     @test reduce(@NT(xsum = (:x => (+)), negtsum = ((:t => (-)) => (+))), t) == @NT(xsum = 3, negtsum = -1.35)
 end
 
@@ -908,6 +908,7 @@ end
     @test groupby((:s => func1, ), t, :x, usekey = true) == table([1, 2], [4, 5], names = [:x, :s], pkey = :x)
     func2 = (key, dd) -> key.x - length(dd)
     @test groupby((:s => func1, :d => func2), t, :x, usekey = true) == table([1, 2], [4, 5], [-2, -1], names = [:x, :s, :d], pkey = :x)
+    @test groupby(:s => func1, t, :x, usekey = true) == table([1, 2], [4, 5], names = [:x, :s], pkey = :x)
     s(key, dd) = func1(key, dd)
     @test groupby(s, t, :x, usekey = true) == groupby((:s => func1, ), t, :x, usekey = true)
     s2(key, dd) = length(dd)
