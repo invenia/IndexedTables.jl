@@ -180,8 +180,8 @@ function ndsparse(::Val{:serial}, ks::Tup, vs::Union{Tup, AbstractVector};
         d = d[p]
     elseif copy
         if agg !== nothing
-            I, d = groupreduce_to!(agg, I, d, similar(I, 0),
-                                   similar(d,0), Base.OneTo(length(I)))
+            iter = GroupReduce(agg, I, d, Base.OneTo(length(I)))
+            I, d = collect_columns(iter).columns
             agg = nothing
         else
             I = Base.copy(I)

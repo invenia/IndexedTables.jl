@@ -119,31 +119,38 @@ end
 
 ## groupreduce
 
-function groupreduce_to!(f, key, data, dest_key, dest_data, perm, i1=1)
-    n = length(key)
-    while i1 <= n
-        val = init_first(f, data[perm[i1]])
-        i = i1+1
-        while i <= n && roweq(key, perm[i], perm[i1])
-            val = _apply(f, val, data[perm[i]])
-            i += 1
-        end
-        if dest_data === nothing
-            if val isa Tup
-                col = convert(Columns, [val])
-            else
-                col = [val]
-            end
-            push!(dest_key, key[perm[i1]])
-            return groupreduce_to!(f, key, data, dest_key, col, perm, i)
-        else
-            push!(dest_key, key[perm[i1]])
-            push!(dest_data, val)
-        end
-        i1 = i
-    end
-    dest_key, dest_data
+addname(v, name) = v
+addname(v::Tup, name::Type{<:NamedTuple}) = v
+addname(v, name::Type{<:NamedTuple}) = name(v)
+
+struct GroupReduce{F, S, T, P, N}
+    f::F
+    key::S
+    data::T
+    perm::P
+    name::N
+    n::Int
+
+    GroupReduce(f::F, key::S, data::T, perm::P; name::N = nothing) where{F, S, T, P, N} =
+        new{F, S, T, P, N}(f, key, data, perm, name, length(key))
 end
+
+Base.iteratorsize(::GroupReduce) = Base.SizeUnknown()
+
+Base.start(iter::GroupReduce) = 1
+
+function Base.next(iter::GroupReduce, i1)
+    f, key, data, perm, n, name = iter.f, iter.key, iter.data, iter.perm, iter.n, iter.name
+    val = init_first(f, data[perm[i1]])
+    i = i1+1
+    while i <= n && roweq(key, perm[i], perm[i1])
+        val = _apply(f, val, data[perm[i]])
+        i += 1
+    end
+    (key[perm[i1]] => addname(val, name)), i
+end
+
+Base.done(iter::GroupReduce, state) = state > iter.n
 
 """
 `groupreduce(f, t[, by::Selection]; select::Selection)`
@@ -211,13 +218,8 @@ x  xsum  negysum
 function groupreduce(f, t::Dataset, by=pkeynames(t);
                      select = t isa AbstractIndexedTable ? Not(by) : valuenames(t))
 
+    isa(f, Pair) && (f = (f,))
     data = rows(t, select)
-    if typeof(t)<:NextTable &&
-        !isa(f, Tup) &&
-        !(reduced_type(f, data, false) <: Tup)
-        # Name the result after the function
-        return groupreduce((f,), t, by, select=select)
-    end
     by = lowerselection(t, by)
     if !isa(by, Tuple)
         by=(by,)
@@ -225,14 +227,11 @@ function groupreduce(f, t::Dataset, by=pkeynames(t);
     key  = rows(t, by)
     perm = sortpermby(t, by)
 
-    dest_key = similar(key, 0)
-
     fs, input, T = init_inputs(f, data, reduced_type, false)
 
-    dest_key, dest_data = groupreduce_to!(fs, key, input,
-                                          dest_key, nothing, perm)
-
-    convert(collectiontype(t), dest_key, dest_data,
+    name = isa(t, NextTable) ? namedtuple(nicename(f)) : nothing
+    iter = GroupReduce(fs, key, input, perm, name=name)
+    convert(collectiontype(t), collect_columns(iter),
             presorted=true, copy=false)
 end
 
@@ -246,32 +245,36 @@ _apply_with_key(f::Tup, key, data::Tup, process_data) = _apply(f, map(t->key, da
 _apply_with_key(f::Tup, key, data, process_data) = _apply_with_key(f, key, columns(data), process_data)
 _apply_with_key(f, key, data, process_data) = _apply(f, key, process_data(data))
 
-function _groupby(f, key, data, perm, dest_key=similar(key,0),
-                  dest_data=nothing, i1=1; usekey = false)
-    n = length(key)
-    while i1 <= n
-        i = i1+1
-        while i <= n && roweq(key, perm[i], perm[i1])
-            i += 1
-        end
-        process_data = t -> view(t, perm[i1:(i-1)])
-        val = usekey ? _apply_with_key(f, key[perm[i1]], data, process_data) :
-                       _apply_with_key(f, data, process_data)
+struct GroupBy{F, S, T, P, N}
+    f::F
+    key::S
+    data::T
+    perm::P
+    usekey::Bool
+    name::N
+    n::Int
 
-        push!(dest_key, key[perm[i1]])
-        if dest_data === nothing
-            newdata = [val]
-            if isa(val, Tup)
-                newdata = convert(Columns, newdata)
-            end
-            return _groupby(f, key, data, perm, dest_key, newdata, i; usekey = usekey)
-        else
-            push!(dest_data, val)
-        end
-        i1 = i
-    end
-    (dest_key, dest_data===nothing ? Union{}[] : dest_data)
+    GroupBy(f::F, key::S, data::T, perm::P; usekey = false, name::N = nothing) where{F, S, T, P, N} =
+        new{F, S, T, P, N}(f, key, data, perm, usekey, name, length(key))
 end
+
+Base.iteratorsize(::GroupBy) = Base.SizeUnknown()
+
+Base.start(::GroupBy) = 1
+
+function Base.next(iter::GroupBy, i1)
+    f, key, data, perm, usekey, n, name = iter.f, iter.key, iter.data, iter.perm, iter.usekey, iter.n, iter.name
+    i = i1+1
+    while i <= n && roweq(key, perm[i], perm[i1])
+        i += 1
+    end
+    process_data = t -> view(t, perm[i1:(i-1)])
+    val = usekey ? _apply_with_key(f, key[perm[i1]], data, process_data) :
+                   _apply_with_key(f, data, process_data)
+    (key[perm[i1]] => addname(val, name)), i
+end
+
+Base.done(iter, state) = state > iter.n
 
 collectiontype(::Type{<:NDSparse}) = NDSparse
 collectiontype(::Type{<:NextTable}) = NextTable
@@ -382,6 +385,7 @@ function groupby(f, t::Dataset, by=pkeynames(t);
             select = t isa AbstractIndexedTable ? Not(by) : valuenames(t),
             flatten=false, usekey = false)
 
+    isa(f, Pair) && (f = (f,))
     data = rows(t, select)
     f = init_func(f, data)
     by = lowerselection(t, by)
@@ -390,23 +394,20 @@ function groupby(f, t::Dataset, by=pkeynames(t);
     end
 
     key = by == () ? fill((), length(t)) : rows(t, by)
-    # we want to try and keep the column names
-    if typeof(t)<:NextTable &&
-        !isa(f, Tup) &&
-        !(reduced_type(f, data, true, usekey ? key : nothing) <: Tup)
-        # Name the result after the function
-        return groupby((f,), t, by, select=select, flatten=flatten, usekey = usekey)
-    end
 
     fs, input, S = init_inputs(f, data, reduced_type, true)
 
-    by == () && return usekey ? _apply_with_key(fs, (), input, identity) : _apply_with_key(fs, input, identity)
+    if by == ()
+        res = usekey ? _apply_with_key(fs, (), input, identity) : _apply_with_key(fs, input, identity)
+        return addname(res, namedtuple(nicename(f)))
+    end
 
     perm = sortpermby(t, by)
     # Note: we're not using S here, we'll let _groupby figure it out
-    dest_key, dest_data = _groupby(fs, key, input, perm; usekey = usekey)
+    name = isa(t, NextTable) ? namedtuple(nicename(f)) : nothing
+    iter = GroupBy(fs, key, input, perm, usekey = usekey, name = name)
 
-    t = convert(collectiontype(t), dest_key, dest_data, presorted=true, copy=false)
+    t = convert(collectiontype(t), collect_columns(iter), presorted=true, copy=false)
     t isa NextTable && flatten ?
         IndexedTables.flatten(t, length(columns(t))) : t
 end
@@ -583,7 +584,7 @@ function reducedim_vec(f, x::NDSparse, dims; with=valuenames(x))
     if isempty(keep)
         throw(ArgumentError("to remove all dimensions, use `reduce(f, A)`"))
     end
-    idxs, d = _groupby(f, keys(x, (keep...)), rows(x, with), sortpermby(x, (keep...)))
+    idxs, d = collect_columns(GroupBy(f, keys(x, (keep...)), rows(x, with), sortpermby(x, (keep...)))).columns
     NDSparse(idxs, d, presorted=true, copy=false)
 end
 
