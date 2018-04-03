@@ -327,7 +327,7 @@ function getindex(t::NextTable, idxs::AbstractVector{<:Integer})
        #    Perm(p.columns, p.perm[idxs])
        #end
         perms = Perm[]
-        table(t, columns=t.columns[idxs], perms=perms, copy=false)
+        table(t, columns=t.columns[idxs], perms=perms, copy=false, presorted=true)
     else
         # this is for gracefully allowing this later
         throw(ArgumentError("`getindex` called with unsorted index. This is not allowed at this time."))
@@ -363,7 +363,9 @@ function Base.getindex(d::ColDict{<:AbstractIndexedTable})
           pkey=d.pkey)
 end
 
-subtable(t::Union{Columns, NextTable}, r) = t[r]
+function subtable(t::Union{Columns, NextTable}, r; presorted=true)
+    table(t, columns=rows(t)[idxs], perms=perms, copy=false, presorted=presorted)
+end
 
 function primaryperm(t::NextTable)
     Perm(t.pkey, Base.OneTo(length(t)))
