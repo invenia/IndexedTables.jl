@@ -1,8 +1,6 @@
 import DataValues: DataValue
 
-_is_subtype(::Type{S}, ::Type{T}) where {S, T} = S <: T
-_is_subtype(::Type{S}, ::Type{DataValue{T}}) where {S, T} = S<:T
-_is_subtype(::Type{DataValue{S}}, ::Type{DataValue{T}}) where {S, T} = S<:T
+_is_subtype(::Type{S}, ::Type{T}) where {S, T} = promote_type(S, T) == T
 
 Base.@pure function dataarrayof(T)
     if T<:DataValue
