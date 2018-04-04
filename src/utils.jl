@@ -312,8 +312,8 @@ Base.@pure function _promote_op{S,T}(f, ::Type{S}, ::Type{T})
     strip_unionall(t)
 end
 
-_map(f, p::Pair) = f(p.first) => f(p.second)
-_map(f, args...) = map(f, args...)
+@inline _map(f, p::Pair) = f(p.first) => f(p.second)
+@inline _map(f, args...) = map(f, args...)
 
 # The following is not inferable, this is OK because the only place we use
 # this doesn't need it.
