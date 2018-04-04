@@ -1,3 +1,9 @@
+import DataValues: DataValue
+
+_is_subtype(::Type{S}, ::Type{T}) where {S, T} = S <: T
+_is_subtype(::Type{S}, ::Type{DataValue{T}}) where {S, T} = S<:T
+_is_subtype(::Type{DataValue{S}}, ::Type{DataValue{T}}) where {S, T} = S<:T
+
 """
 `collect_columns(itr)`
 
@@ -87,11 +93,11 @@ end
 
 # extra methods if we have widened to Vector{Tuple} or Vector{NamedTuple}
 # better to not generate as this is the case where the user is sending heterogenoeus data
-fieldwise_isa(el::S, ::Type{Tuple}) where {S<:Tup} = S <: Tuple
-fieldwise_isa(el::S, ::Type{NamedTuple}) where {S<:Tup} = S <: NamedTuple
+fieldwise_isa(el::S, ::Type{Tuple}) where {S<:Tup} = _is_subtype(S, Tuple)
+fieldwise_isa(el::S, ::Type{NamedTuple}) where {S<:Tup} = _is_subtype(S, NamedTuple)
 
 @generated function fieldwise_isa(el::S, ::Type{T}) where {S<:Tup, T<:Tup}
-    if (fieldnames(S) == fieldnames(T)) && all((s <: t) for (s, t) in zip(S.parameters, T.parameters))
+    if (fieldnames(S) == fieldnames(T)) && all(_is_subtype(s, t) for (s, t) in zip(S.parameters, T.parameters))
         return :(true)
     else
         return :(false)
@@ -99,7 +105,7 @@ fieldwise_isa(el::S, ::Type{NamedTuple}) where {S<:Tup} = S <: NamedTuple
 end
 
 @generated function fieldwise_isa(el::S, ::Type{T}) where {S, T}
-    if S <: T
+    if _is_subtype(S, T)
         return :(true)
     else
         return :(false)
@@ -135,6 +141,6 @@ end
 
 function widencolumns(dest::Columns{<:Pair}, i, el::Pair, ::Type{Pair{T1, T2}}) where{T1, T2}
     dest1 = fieldwise_isa(el.first, T1) ? dest.columns.first : widencolumns(dest.columns.first, i, el.first, T1)
-    dest2 = fieldwise_isa(el.second, T2) ? dest.columns.second : widencolumns(dest.columns.second, i, el.second, T1)
+    dest2 = fieldwise_isa(el.second, T2) ? dest.columns.second : widencolumns(dest.columns.second, i, el.second, T2)
     Columns(dest1 => dest2)
 end

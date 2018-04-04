@@ -135,7 +135,7 @@ struct GroupReduce{F, S, T, P, N}
         new{F, S, T, P, N}(f, key, data, perm, name, length(key))
 end
 
-Base.iteratorsize(::GroupReduce) = Base.SizeUnknown()
+Base.iteratorsize(::Type{<:GroupReduce}) = Base.SizeUnknown()
 
 Base.start(iter::GroupReduce) = 1
 
@@ -258,7 +258,7 @@ struct GroupBy{F, S, T, P, N}
         new{F, S, T, P, N}(f, key, data, perm, usekey, name, length(key))
 end
 
-Base.iteratorsize(::GroupBy) = Base.SizeUnknown()
+Base.iteratorsize(::Type{<:GroupBy}) = Base.SizeUnknown()
 
 Base.start(::GroupBy) = 1
 
