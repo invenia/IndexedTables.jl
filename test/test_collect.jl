@@ -120,4 +120,16 @@ end
     v = Iterators.filter(t -> t.first.a == 4, (@NT(a=i) => @NT(b="a$i") for i in 1:3))
     @test collect_columns(v) == Columns(Columns(@NT(a = Int[]))=>Columns(@NT(b = String[])))
     @test eltype(collect_columns(v)) == Pair{NamedTuples._NT_a{Int}, NamedTuples._NT_b{String}}
+
+    t = table(@NT(b=1) => @NT(a = i) for i in (2, DataValue{Int}(), 3))
+    @test t == table(@NT(b = [1,1,1], a = [2, DataValue{Int}(), 3]), pkey = :b)
+end
+
+@testset "issubtype" begin
+    @test IndexedTables._is_subtype(Int, Int)
+    @test IndexedTables._is_subtype(Int, DataValue{Int})
+    @test !IndexedTables._is_subtype(DataValue{Int}, Int)
+    @test IndexedTables._is_subtype(DataValue{Int}, DataValue{Int})
+    @test !IndexedTables._is_subtype(DataValue{Int}, DataValue{String})
+    @test !IndexedTables._is_subtype(Int, String)
 end
