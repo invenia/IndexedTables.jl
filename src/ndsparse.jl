@@ -559,5 +559,5 @@ function aggregate!(f, x::NDSparse)
 end
 
 function subtable(x::NDSparse, idx; presorted=true)
-    ndsparse(keys(x)[idx], values(x)[idx], presorted=presorted)
+    ndsparse(keys(x)[idx], values(x)[idx], presorted=presorted, copy=false)
 end

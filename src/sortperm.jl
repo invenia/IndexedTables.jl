@@ -49,6 +49,7 @@ function sortpermby(t, by; cache=false)
     else
         sortperm(rows(bycols))
     end
+
     if cache
         cacheperm!(t, Perm(canonorder_vec, perm))
     end
