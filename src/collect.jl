@@ -1,8 +1,14 @@
 import DataValues: DataValue
 
-_is_subtype(::Type{S}, ::Type{T}) where {S, T} = S <: T
-_is_subtype(::Type{S}, ::Type{DataValue{T}}) where {S, T} = S<:T
-_is_subtype(::Type{DataValue{S}}, ::Type{DataValue{T}}) where {S, T} = S<:T
+_is_subtype(::Type{S}, ::Type{T}) where {S, T} = promote_type(S, T) == T
+
+Base.@pure function dataarrayof(T)
+    if T<:DataValue
+        DataValueArray{T.parameters[1],1}
+    else
+        Vector{T}
+    end
+end
 
 """
 `collect_columns(itr)`
@@ -125,7 +131,7 @@ function widencolumns(dest, i, el::S, ::Type{T}) where{S <: Tup, T<:Tup}
         idx = find(!(s <: t) for (s, t) in zip(sp, tp))
         new = dest
         for l in idx
-            newcol = Array{promote_type(sp[l], tp[l])}(length(dest))
+            newcol = dataarrayof(promote_type(sp[l], tp[l]))(length(dest))
             copy!(newcol, 1, column(dest, l), 1, i-1)
             new = setcol(new, l, newcol)
         end
@@ -134,7 +140,7 @@ function widencolumns(dest, i, el::S, ::Type{T}) where{S <: Tup, T<:Tup}
 end
 
 function widencolumns(dest, i, el::S, ::Type{T}) where{S, T}
-    new = Array{promote_type(S, T)}(length(dest))
+    new = dataarrayof(promote_type(S, T))(length(dest))
     copy!(new, 1, dest, 1, i-1)
     new
 end
