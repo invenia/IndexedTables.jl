@@ -105,10 +105,12 @@ function reduce(f, t::Dataset; select=valuenames(t))
     _reduce(fs, input, acc, 2)
 end
 
-function reduce(f, t::Dataset, v0; select=valuenames(t))
+function reduce(f, v0, t::Dataset; select=valuenames(t))
     fs, input, T = init_inputs(f, rows(t, select), reduced_type, false)
     _reduce(fs, input, v0, 1)
 end
+
+@deprecate reduce(f, t::Dataset, v0; select=valuenames(t)) reduce(f, v0, t::Dataset; select=select)
 
 function _reduce(fs, input, acc, start)
     @inbounds @simd for i=start:length(input)

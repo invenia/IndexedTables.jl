@@ -839,6 +839,7 @@ end
 @testset "reduce" begin
     t = table([0.1, 0.5, 0.75], [0, 1, 2], names=[:t, :x])
     @test reduce(+, t, select=:t) == 1.35
+    @test reduce(+, 1.0, t, select = :t) == 2.35
     @test reduce(((a, b)->@NT(t = a.t + b.t, x = a.x + b.x)), t) == @NT(t = 1.35, x = 3)
     @test value(reduce(Mean(), t, select=:t)) == 0.45
     y = reduce((min, max), t, select=:x)
