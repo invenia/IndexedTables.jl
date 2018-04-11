@@ -58,5 +58,5 @@ function sortpermby(t, by; cache=false)
 end
 
 function sortpermby(t, by::AbstractArray; cache=true)
-    sortperm(by)
+    sortperm_fast(by)
 end

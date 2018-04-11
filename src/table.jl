@@ -363,7 +363,7 @@ function Base.getindex(d::ColDict{<:AbstractIndexedTable})
           pkey=d.pkey)
 end
 
-function subtable(t::Union{Columns, NextTable}, r; presorted=true)
+function subtable(t::Union{Columns, NextTable}, idxs; presorted=true)
     table(t, columns=rows(t)[idxs], perms=perms, copy=false, presorted=presorted)
 end
 
