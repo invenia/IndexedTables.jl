@@ -910,7 +910,7 @@ end
 function rename!(d::ColDict, col, newname)
     k = _colindex(d.names, col, 0)
     if k == 0
-        error("$i not found. Cannot rename it.")
+        error("$col not found. Cannot rename it.")
     end
     d.names[k] = newname
 end

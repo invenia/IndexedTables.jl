@@ -105,10 +105,12 @@ function reduce(f, t::Dataset; select=valuenames(t))
     _reduce(fs, input, acc, 2)
 end
 
-function reduce(f, t::Dataset, v0; select=valuenames(t))
+function reduce(f, v0, t::Dataset; select=valuenames(t))
     fs, input, T = init_inputs(f, rows(t, select), reduced_type, false)
     _reduce(fs, input, v0, 1)
 end
+
+@deprecate reduce(f, t::Dataset, v0; select=valuenames(t)) reduce(f, v0, t::Dataset; select=select)
 
 function _reduce(fs, input, acc, start)
     @inbounds @simd for i=start:length(input)
@@ -135,7 +137,7 @@ struct GroupReduce{F, S, T, P, N}
         new{F, S, T, P, N}(f, key, data, perm, name, length(key))
 end
 
-Base.iteratorsize(::GroupReduce) = Base.SizeUnknown()
+Base.iteratorsize(::Type{<:GroupReduce}) = Base.SizeUnknown()
 
 Base.start(iter::GroupReduce) = 1
 
@@ -272,7 +274,7 @@ struct GroupBy{F, S, T, P, N}
         new{F, S, T, P, N}(f, key, data, perm, usekey, name, length(key))
 end
 
-Base.iteratorsize(::GroupBy) = Base.SizeUnknown()
+Base.iteratorsize(::Type{<:GroupBy}) = Base.SizeUnknown()
 
 Base.start(::GroupBy) = 1
 

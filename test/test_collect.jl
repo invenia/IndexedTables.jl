@@ -1,3 +1,5 @@
+using IndexedTables: collect_columns_flattened
+
 @testset "collectnamedtuples" begin
     v = [@NT(a = 1, b = 2), @NT(a = 1, b = 3)]
     @test collect_columns(v) == Columns(@NT(a = Int[1, 1], b = Int[2, 3]))
@@ -93,6 +95,10 @@ end
     itr = (i for i in 0:-1)
     tuple_itr = (exp(i) for i in itr)
     @test collect_columns(tuple_itr) == Float64[]
+
+    t = collect_columns(@NT(a = i) for i in (1, DataValue{Int}(), 3))
+    @test columns(t, 1) isa DataValueArray
+    @test isequal(columns(t, 1), DataValueArray([1, DataValue{Int}(), 3]))
 end
 
 @testset "collectpairs" begin
@@ -120,4 +126,26 @@ end
     v = Iterators.filter(t -> t.first.a == 4, (@NT(a=i) => @NT(b="a$i") for i in 1:3))
     @test collect_columns(v) == Columns(Columns(@NT(a = Int[]))=>Columns(@NT(b = String[])))
     @test eltype(collect_columns(v)) == Pair{NamedTuples._NT_a{Int}, NamedTuples._NT_b{String}}
+
+    t = table(@NT(b=1) => @NT(a = i) for i in (2, DataValue{Int}(), 3))
+    @test t == table(@NT(b = [1,1,1], a = [2, DataValue{Int}(), 3]), pkey = :b)
+end
+
+@testset "issubtype" begin
+    @test IndexedTables._is_subtype(Int, Int)
+    @test IndexedTables._is_subtype(Int, DataValue{Int})
+    @test !IndexedTables._is_subtype(DataValue{Int}, Int)
+    @test IndexedTables._is_subtype(DataValue{Int}, DataValue{Int})
+    @test !IndexedTables._is_subtype(DataValue{Int}, DataValue{String})
+    @test !IndexedTables._is_subtype(Int, String)
+end
+
+@testset "collectflattened" begin
+    t = [(:a => [1, 2]), (:b => [1, 3])]
+    @test collect_columns_flattened(t) == Columns([:a, :a, :b, :b] => [1, 2, 1, 3])
+    t = ([@NT(a = 1), @NT(a = 2)], [@NT(a = 1.1), @NT(a = 2.2)])
+    @test collect_columns_flattened(t) == Columns(a = [1, 2, 1.1, 2.2])
+    @test eltype(collect_columns_flattened(t)) == typeof(@NT(a=1.1))
+    t = [(:a => table(1:2, ["a", "b"])), (:b => table(3:4, ["c", "d"]))]
+    @test table(collect_columns_flattened(t)) == table([:a, :a, :b, :b], 1:4, ["a", "b", "c", "d"], pkey = 1)
 end
