@@ -1,6 +1,7 @@
 using Base.Test
 import Base: tuple_type_cons, tuple_type_head, tuple_type_tail, in, ==, isless, convert,
              length, eltype, start, next, done, show
+using WeakRefStrings
 
 export @NT
 
@@ -121,6 +122,7 @@ end
 # sortperm with counting sort
 
 sortperm_fast(x) = sortperm(x)
+sortperm_fast(x::StringVector) = sortperm(convert(StringVector{WeakRefString{UInt8}}, x))
 
 function sortperm_fast(v::Vector{T}) where T<:Integer
     n = length(v)
@@ -250,6 +252,8 @@ Base.@pure function arrayof(S)
         Columns{T,namedtuple(fieldnames(T)...){map(arrayof, T.parameters)...}}
     elseif T<:DataValue
         DataValueArray{T.parameters[1],1}
+    elseif T<:String
+        StringArray{T}
     elseif T<:Pair
         Columns{T, Pair{map(arrayof, T.parameters)...}}
     else
