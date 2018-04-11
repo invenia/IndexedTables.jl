@@ -364,7 +364,7 @@ function Base.getindex(d::ColDict{<:AbstractIndexedTable})
 end
 
 function subtable(t::Union{Columns, NextTable}, idxs; presorted=true)
-    table(t, columns=rows(t)[idxs], perms=perms, copy=false, presorted=presorted)
+    table(t, columns=rows(t)[idxs], perms=t.perms, copy=false, presorted=presorted)
 end
 
 function primaryperm(t::NextTable)

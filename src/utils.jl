@@ -253,7 +253,7 @@ Base.@pure function arrayof(S)
     elseif T<:DataValue
         DataValueArray{T.parameters[1],1}
     elseif T<:String
-        StringArray{T}
+        StringArray{T, 1}
     elseif T<:Pair
         Columns{T, Pair{map(arrayof, T.parameters)...}}
     else
