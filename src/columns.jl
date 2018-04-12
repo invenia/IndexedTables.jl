@@ -271,7 +271,7 @@ end
 function sortperm(c::Columns)
     cols = c.columns
     x = cols[1]
-    if x isa Vector{String} || length(cols) > 1
+    if (eltype(x) <: AbstractString && !(x isa PooledArray)) || length(cols) > 1
         pa = PooledArray(x)
         p = sortperm_fast(pa)
     else
