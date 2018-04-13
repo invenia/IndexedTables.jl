@@ -261,17 +261,17 @@ _apply_with_key(f::Tup, key, data::Tup, process_data) = _apply(f, map(t->key, da
 _apply_with_key(f::Tup, key, data, process_data) = _apply_with_key(f, key, columns(data), process_data)
 _apply_with_key(f, key, data, process_data) = _apply(f, key, process_data(data))
 
-struct GroupBy{F, S, T, P, N}
-    f::F
-    key::S
-    data::T
-    perm::P
+struct GroupBy
+    f
+    key
+    data
+    perm
     usekey::Bool
-    name::N
+    name
     n::Int
 
-    GroupBy(f::F, key::S, data::T, perm::P; usekey = false, name::N = nothing) where{F, S, T, P, N} =
-        new{F, S, T, P, N}(f, key, data, perm, usekey, name, length(key))
+    GroupBy(f, key, data, perm; usekey = false, name = nothing) =
+        new(f, key, data, perm, usekey, name, length(key))
 end
 
 Base.iteratorsize(::Type{<:GroupBy}) = Base.SizeUnknown()

@@ -43,7 +43,7 @@ function collect_empty_columns(itr::T) where {T}
     similar(arrayof(S), 0)
 end
 
-function collect_columns(itr, ::Union{Base.HasShape, Base.HasLength})
+function collect_columns(itr::ANY, ::Union{Base.HasShape, Base.HasLength})
     st = start(itr)
     done(itr, st) && return collect_empty_columns(itr)
     el, st = next(itr, st)
