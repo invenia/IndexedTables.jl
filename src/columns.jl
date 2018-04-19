@@ -855,6 +855,8 @@ function Base.setindex!(d::ColDict, x, key::Union{Symbol, Int})
     end
 end
 
+set!(d::ColDict, key::Union{Symbol, Int}, x) = setindex!(d, x, key)
+
 function Base.haskey(d::ColDict, key)
     _colindex(d.names, key, 0) != 0
 end
@@ -889,7 +891,7 @@ function insertbefore!(d::ColDict, i, key, col)
     insert!(d, k, key, col)
 end
 
-function Base.pop!(d::ColDict, key=length(s.names))
+function Base.pop!(d::ColDict, key::Union{Symbol, Int}=length(d.names))
     k = _colindex(d.names, key, 0)
     local col
     if k == 0
@@ -913,7 +915,7 @@ function Base.pop!(d::ColDict, key=length(s.names))
     col
 end
 
-function rename!(d::ColDict, col, newname)
+function rename!(d::ColDict, col::Union{Symbol, Int}, newname)
     k = _colindex(d.names, col, 0)
     if k == 0
         error("$col not found. Cannot rename it.")
@@ -921,9 +923,26 @@ function rename!(d::ColDict, col, newname)
     d.names[k] = newname
 end
 
-function Base.push!(d::ColDict, key, x)
+function Base.push!(d::ColDict, key::Union{Symbol, Int}, x)
     push!(d.names, key)
     push!(d.columns, rows(d.src, x))
+end
+
+for s in [:(Base.pop!), :(Base.push!), :(rename!), :(set!)]
+    if s == :(Base.pop!)
+        typ = :(Union{Symbol, Int})
+    else
+        typ = :Pair
+        @eval $s(t::ColDict, x::Pair) = $s(t, x.first, x.second)
+    end
+    @eval begin
+        function $s(t::ColDict, args)
+            for i in args
+                $s(t, i)
+            end
+        end
+        $s(t::ColDict, args::Vararg{$typ}) = $s(t, args)
+    end
 end
 
 function _cols(expr)
@@ -1008,13 +1027,35 @@ julia> t == t2
 false
 
 ```
+
+If `col` is not an existing column, `setcol` will add it:
+
+```jldoctest setcol
+julia> t = table([1,2], [2,3], names = [:a,:b])
+Table with 2 rows, 2 columns:
+a  b
+────
+1  2
+2  3
+
+julia> setcol(t, :c, [1,2])
+Table with 2 rows, 3 columns:
+a  b  c
+───────
+1  2  1
+2  3  2
+```
 """
-setcol(t, col, x) = @cols setindex!(t, x, col)
+setcol(t, args...) = @cols set!(t, args...)
 
 """
 `pushcol(t, name, x)`
 
 Push a column `x` to the end of the table. `name` is the name for the new column. Returns a new table.
+
+`pushcol(t, map::Pair...)`
+
+Push many columns at a time.
 
 # Example:
 
@@ -1035,12 +1076,16 @@ t     x  y  z
 
 ```
 """
-pushcol(t, name, x) = @cols push!(t, name, x)
+pushcol(t, args...) = @cols push!(t, args...)
 
 """
 `popcol(t, col)`
 
 Remove the column `col` from the table. Returns a new table.
+
+`popcol(t, cols...)`
+
+Remove many columns at a time.
 
 ```jldoctest
 julia> t = table([0.01, 0.05], [2,1], [3,4], names=[:t, :x, :y], pkey=:t)
@@ -1058,7 +1103,7 @@ t     y
 0.05  4
 ```
 """
-popcol(t, name) = @cols pop!(t, name)
+popcol(t, args...) = @cols pop!(t, args...)
 
 """
 `insertcol(t, position::Integer, name, x)`
@@ -1135,6 +1180,10 @@ insertcolbefore(t, before, name, x) = @cols insertbefore!(t, before, name, x)
 
 Set `newname` as the new name for column `col` in `t`. Returns a new table.
 
+`renamecol(t, map::Pair...)`
+
+Rename many columns at a time.
+
 ```jldoctest
 julia> t = table([0.01, 0.05], [2,1], names=[:t, :x])
 Table with 2 rows, 2 columns:
@@ -1151,7 +1200,7 @@ time  x
 0.05  1
 ```
 """
-renamecol(t, name, newname) = @cols rename!(t, name, newname)
+renamecol(t, args...) = @cols rename!(t, args...)
 
 ## Utilities for mapping and reduction with many functions / OnlineStats
 
