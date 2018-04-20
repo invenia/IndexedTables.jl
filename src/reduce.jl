@@ -1,5 +1,5 @@
 using OnlineStats
-export groupreduce, groupby, aggregate, aggregate_vec, summarize
+export groupreduce, groupby, aggregate, aggregate_vec, summarize, ApplyColwise
 
 """
 `reduce(f, t::Table; select::Selection)`
@@ -218,16 +218,27 @@ x  xsum  negysum
 
 """
 function groupreduce(f, t::Dataset, by=pkeynames(t);
-                     select = t isa AbstractIndexedTable ? Not(by) : valuenames(t))
+                     select = t isa AbstractIndexedTable ? Not(by) : valuenames(t),
+                     cache=false)
+
+    if f isa ApplyColwise
+        if !(f.functions isa Union{Function, Type})
+            error("Only functions are supported in ApplyColwise for groupreduce")
+        end
+        return groupby(grp->colwise_group_fast(f.functions, grp), t, by; select=select)
+    end
 
     isa(f, Pair) && (f = (f,))
+
     data = rows(t, select)
+
     by = lowerselection(t, by)
+
     if !isa(by, Tuple)
         by=(by,)
     end
     key  = rows(t, by)
-    perm = sortpermby(t, by)
+    perm = sortpermby(t, by, cache=cache)
 
     fs, input, T = init_inputs(f, data, reduced_type, false)
 
@@ -236,6 +247,9 @@ function groupreduce(f, t::Dataset, by=pkeynames(t);
     convert(collectiontype(t), collect_columns(iter),
             presorted=true, copy=false)
 end
+
+colwise_group_fast(f, grp::Union{Columns, Dataset}) = map(c->reduce(f, c), columns(grp))
+colwise_group_fast(f, grp::AbstractVector) = reduce(f, grp)
 
 ## GroupBy
 
@@ -247,17 +261,17 @@ _apply_with_key(f::Tup, key, data::Tup, process_data) = _apply(f, map(t->key, da
 _apply_with_key(f::Tup, key, data, process_data) = _apply_with_key(f, key, columns(data), process_data)
 _apply_with_key(f, key, data, process_data) = _apply(f, key, process_data(data))
 
-struct GroupBy{F, S, T, P, N}
-    f::F
-    key::S
-    data::T
-    perm::P
+struct GroupBy
+    f
+    key
+    data
+    perm
     usekey::Bool
-    name::N
+    name
     n::Int
 
-    GroupBy(f::F, key::S, data::T, perm::P; usekey = false, name::N = nothing) where{F, S, T, P, N} =
-        new{F, S, T, P, N}(f, key, data, perm, usekey, name, length(key))
+    GroupBy(f, key, data, perm; usekey = false, name = nothing) =
+        new(f, key, data, perm, usekey, name, length(key))
 end
 
 Base.iteratorsize(::Type{<:GroupBy}) = Base.SizeUnknown()

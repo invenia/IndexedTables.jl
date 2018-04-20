@@ -424,8 +424,8 @@ function deserialize(s::AbstractSerializer, ::Type{SerializedNDSparse})
     NDSparse(I, d, presorted=true)
 end
 
-convert(::Type{NDSparse}, ks, vs; kwargs...) = ndsparse(ks, vs; kwargs...)
-convert(T::Type{NDSparse}, c::Columns{<:Pair}; kwargs...) = convert(T, c.columns.first, c.columns.second; kwargs...)
+@noinline convert(::Type{NDSparse}, ks::ANY, vs::ANY; kwargs...) = ndsparse(ks, vs; kwargs...)
+@noinline convert(T::Type{NDSparse}, c::Columns{<:Pair}; kwargs...) = convert(T, c.columns.first, c.columns.second; kwargs...)
 
 # map and convert
 
@@ -558,6 +558,6 @@ function aggregate!(f, x::NDSparse)
     x
 end
 
-function subtable(x::NDSparse, idx)
-    ndsparse(keys(x)[idx], values(x)[idx])
+function subtable(x::NDSparse, idx; presorted=true)
+    ndsparse(keys(x)[idx], values(x)[idx], presorted=presorted, copy=false)
 end

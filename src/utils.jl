@@ -1,6 +1,7 @@
 using Base.Test
 import Base: tuple_type_cons, tuple_type_head, tuple_type_tail, in, ==, isless, convert,
              length, eltype, start, next, done, show
+using WeakRefStrings
 
 export @NT
 
@@ -120,7 +121,8 @@ end
 
 # sortperm with counting sort
 
-sortperm_fast(x) = sortperm(sortproxy(x))
+sortperm_fast(x) = sortperm(x)
+sortperm_fast(x::StringVector) = sortperm(convert(StringVector{WeakRefString{UInt8}}, x))
 
 function sortperm_fast(v::Vector{T}) where T<:Integer
     n = length(v)
@@ -158,6 +160,11 @@ end
 
 # sort the values in v[i0:i1] in place, by array `by`
 function sort_sub_by!(v, i0, i1, by, order, temp)
+    empty!(temp)
+    sort!(v, i0, i1, MergeSort, order, temp)
+end
+
+function sort_sub_by!(v, i0, i1, by::PooledArray, order, temp)
     empty!(temp)
     sort!(v, i0, i1, MergeSort, order, temp)
 end
@@ -245,6 +252,8 @@ Base.@pure function arrayof(S)
         Columns{T,namedtuple(fieldnames(T)...){map(arrayof, T.parameters)...}}
     elseif T<:DataValue
         DataValueArray{T.parameters[1],1}
+    elseif T<:String
+        StringArray{T, 1}
     elseif T<:Pair
         Columns{T, Pair{map(arrayof, T.parameters)...}}
     else
@@ -307,8 +316,8 @@ Base.@pure function _promote_op{S,T}(f, ::Type{S}, ::Type{T})
     strip_unionall(t)
 end
 
-_map(f, p::Pair) = f(p.first) => f(p.second)
-_map(f, args...) = map(f, args...)
+@inline _map(f, p::Pair) = f(p.first) => f(p.second)
+@inline _map(f, args...) = map(f, args...)
 
 # The following is not inferable, this is OK because the only place we use
 # this doesn't need it.
