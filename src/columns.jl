@@ -314,7 +314,14 @@ end
 
 function permute!(c::Columns, p::AbstractVector)
     for v in c.columns
-        copy!(v, v[p])
+        if isa(v, StringArray{String})
+            ws = convert(StringArray{WeakRefString{UInt8}}, v)
+            permute!(ws, p)
+        elseif isa(v, PooledArrays.PooledArray)
+            permute!(v, p)
+        else
+            copy!(v, v[p])
+        end
     end
     return c
 end
