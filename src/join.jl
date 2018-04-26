@@ -874,8 +874,12 @@ function Base.merge(a::NextTable, b::NextTable;
     else
         throw(ArgumentError("the tables don't have the same column names. Use `select` first."))
     end
-    table(map(vcat, columns(a), columns(b)), pkey=pkey, copy=false)
+    table(map(opt_vcat, columns(a), columns(b)), pkey=pkey, copy=false)
 end
+
+opt_vcat(a, b) = vcat(a, b)
+opt_vcat(a::AbstractArray{<:Any, 1}, b::PooledArray{<:Any, <:Integer, 1}) = vcat((length(unique(a)) <= length(b.pool)) ? PooledArray(a) : a, b)
+opt_vcat(a::PooledArray{<:Any, <:Integer, 1}, b::AbstractArray{<:Any, 1}) = vcat(a, (length(unique(b)) < length(a.pool)) ? PooledArray(b) : b)
 
 function merge(x::NDSparse, xs::NDSparse...; agg = nothing)
     as = [x, xs...]
